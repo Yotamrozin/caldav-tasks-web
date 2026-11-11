@@ -2,7 +2,7 @@
 import { expect } from "@std/expect"
 import { renderToString } from "preact-render-to-string"
 import { focused, mount, must, texts } from "./mount.test.tsx"
-import { ListScreen, type ListScreenProps } from "./list-screen.tsx"
+import { CompletedRange, ListScreen, type ListScreenProps } from "./list-screen.tsx"
 import { dateOnly, FIXTURE_LIST_HREF, makeTask } from "./task-fixtures.ts"
 import { SortMode } from "@spy4x/platform/universal/ical-tasks-view"
 import { TaskStatus } from "@spy4x/time/ical-tasks-model"
@@ -29,8 +29,8 @@ const props = (over: Partial<ListScreenProps> = {}): ListScreenProps => ({
   onSortChange: () => {},
   activeTags: [],
   onActiveTagsChange: () => {},
-  showCompleted: false,
-  onShowCompletedChange: () => {},
+  completedRange: CompletedRange.Hidden,
+  onCompletedRangeChange: () => {},
   onComplete: () => {},
   onOpen: () => {},
   onQuickAdd: () => {},
@@ -50,10 +50,14 @@ Deno.test("the list shows its name, a way back to Lists and quick add that says 
   expect(html).toContain(`Added to Home`)
 })
 
-Deno.test("subtasks sit under their parent and completed tasks are hidden until Show completed", async () => {
+Deno.test("subtasks sit under their parent and completed tasks show below, in their own section", async () => {
   await mount(<ListScreen {...props()} />, async ({ root, rerender }) => {
     expect(titles(root)).toEqual([`Paint the room`, `Buy paint`, `Zebra`, `Apple`])
-    await rerender(<ListScreen {...props({ showCompleted: true })} />)
+    expect(root.querySelector(`[data-e2e="completed-section"]`)).toBeNull()
+    await rerender(<ListScreen {...props({ completedRange: CompletedRange.All })} />)
+    expect(texts(root, `[data-e2e="completed-section"] [data-e2e="task-open"]`)).toEqual([
+      `Done thing`,
+    ])
     expect(titles(root)).toEqual([`Paint the room`, `Buy paint`, `Zebra`, `Apple`, `Done thing`])
   })
 })
@@ -109,16 +113,16 @@ Deno.test("with two tag chips pressed, a task carrying only one of them still sh
   expect(out).toEqual([`Paint the room`, `Buy paint`, `Apple`])
 })
 
-Deno.test("tag chips come only from the tasks shown, so Show completed adds a finished task's tag", async () => {
+Deno.test("tag chips come only from the tasks shown, so showing completed adds a finished task's tag", async () => {
   const chips = `[aria-label="Filter by tag"] button`
   await mount(<ListScreen {...props()} />, async ({ root, rerender }) => {
     expect(texts(root, chips)).toEqual([`#diy`, `#food`])
-    await rerender(<ListScreen {...props({ showCompleted: true })} />)
+    await rerender(<ListScreen {...props({ completedRange: CompletedRange.All })} />)
     expect(texts(root, chips)).toEqual([`#chores`, `#diy`, `#food`])
   })
 })
 
-Deno.test("a pressed chip stays visible and pressed when Show completed hides every task carrying it", async () => {
+Deno.test("a pressed chip stays visible and pressed when hiding completed hides every task carrying it", async () => {
   const chips = `[aria-label="Filter by tag"] button`
   await mount(<ListScreen {...props({ activeTags: [`chores`] })} />, async ({ root }) => {
     const chores = [...root.querySelectorAll<HTMLButtonElement>(chips)]
@@ -127,15 +131,43 @@ Deno.test("a pressed chip stays visible and pressed when Show completed hides ev
   })
 })
 
-Deno.test("Show completed reports the new state", async () => {
-  const states: boolean[] = []
+Deno.test("the Completed menu reports the range picked", async () => {
+  const ranges: CompletedRange[] = []
   await mount(
-    <ListScreen {...props({ onShowCompletedChange: (show) => states.push(show) })} />,
-    async ({ root, act }) => {
-      await act(() => must<HTMLInputElement>(root, `[data-e2e="show-completed"]`).click())
-      expect(states).toEqual([true])
+    <ListScreen {...props({ onCompletedRangeChange: (range) => ranges.push(range) })} />,
+    async ({ root, window, act }) => {
+      const select = must<HTMLSelectElement>(root, `[data-e2e="completed-range"]`)
+      await act(() => {
+        select.value = CompletedRange.Today
+        select.dispatchEvent(new window.Event(`change`, { bubbles: true }) as never)
+      })
+      expect(ranges).toEqual([CompletedRange.Today])
     },
   )
+})
+
+Deno.test("Completed shows today's, the last seven days' or every finished task, newest first", () => {
+  const done = (uid: string, title: string, stamp: string) =>
+    makeTask(uid, title, {
+      status: TaskStatus.Completed,
+      ics: `BEGIN:VTODO\r\nUID:${uid}\r\nCOMPLETED:${stamp}\r\nEND:VTODO\r\n`,
+    })
+  const tasks = [
+    done(`w`, `Six days ago`, `20261002T120000Z`),
+    done(`t`, `This morning`, `20261008T070000Z`),
+    done(`o`, `Seven days ago`, `20261001T235959Z`),
+    makeTask(`x`, `Cancelled`, { status: TaskStatus.Cancelled }),
+  ]
+  const shown = (range: CompletedRange) => mount_titles(props({ tasks, completedRange: range }))
+  expect(shown(CompletedRange.Hidden)).toEqual([])
+  expect(shown(CompletedRange.Today)).toEqual([`This morning`])
+  expect(shown(CompletedRange.Week)).toEqual([`This morning`, `Six days ago`])
+  expect(shown(CompletedRange.All)).toEqual([
+    `This morning`,
+    `Six days ago`,
+    `Seven days ago`,
+    `Cancelled`,
+  ])
 })
 
 Deno.test("More actions offers only the actions the caller can do, and Delete is marked as dangerous", async () => {

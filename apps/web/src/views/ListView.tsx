@@ -3,7 +3,7 @@ import { useSignal } from "@preact/signals"
 import { useEffect } from "preact/hooks"
 import { useLocation, useParams, useSearch } from "wouter-preact"
 import { useUrlFilters } from "@spy4x/preact-signals/use-url-filters"
-import { ListScreen } from "@ui/list-screen.tsx"
+import { CompletedRange, ListScreen } from "@ui/list-screen.tsx"
 import { LoadingBody } from "@ui/task-screen.tsx"
 import { calendarsLoaded } from "../state/calendars.ts"
 import { loadCompleted } from "../state/sync.ts"
@@ -27,17 +27,21 @@ export function ListView() {
   const params = new URLSearchParams(useSearch())
   const sort = useSignal(params.get(`sort`) ?? ``)
   const tags = useSignal(params.get(`tags`) ?? ``)
+  const doneParam = useSignal(params.get(`done`) ?? ``)
   useUrlFilters({
     sort: { signal: sort, urlParam: `sort`, initialValue: `` },
     tags: { signal: tags, urlParam: `tags`, initialValue: `` },
+    done: { signal: doneParam, urlParam: `done`, initialValue: `` },
   })
-  const showCompleted = useSignal(false)
+  const completedRange = Object.values(CompletedRange).includes(doneParam.value as CompletedRange)
+    ? doneParam.value as CompletedRange
+    : CompletedRange.Week
   const quickAdd = useQuickAdd({ listHref: list?.href })
   const listHref = list?.href
   const now = useNow({ zone: browserZone() }).value
   useEffect(() => {
-    if (listHref && showCompleted.value) void loadCompleted(listHref)
-  }, [listHref, showCompleted.value])
+    if (listHref && completedRange !== CompletedRange.Hidden) void loadCompleted(listHref)
+  }, [listHref, completedRange])
 
   if (!list) return calendarsLoaded.value ? <NotFoundView /> : <LoadingBody label="Loading list" />
   return (
@@ -51,8 +55,9 @@ export function ListView() {
       onSortChange={(mode) => sort.value = sortToParam(mode)}
       activeTags={tagsFromParam(tags.value)}
       onActiveTagsChange={(next) => tags.value = tagsToParam(next)}
-      showCompleted={showCompleted.value}
-      onShowCompletedChange={(show) => showCompleted.value = show}
+      completedRange={completedRange}
+      onCompletedRangeChange={(range) =>
+        doneParam.value = range === CompletedRange.Week ? `` : range}
       onComplete={(task, done) => void completeWithUndo(task, done)}
       onOpen={(task) => navigate(taskPath(task))}
       onReorder={(task, siblings, to) =>

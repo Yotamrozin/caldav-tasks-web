@@ -1,6 +1,5 @@
 import type { JSX } from "preact"
 import { IconCheckCircle, IconFunnel } from "@spy4x/preact-icons"
-import { Checkbox } from "@spy4x/preact-ui/checkbox"
 import { DropdownItem } from "@spy4x/preact-ui/dropdown"
 import { PageHeader } from "@spy4x/preact-ui/page-header"
 import { Select } from "@spy4x/preact-ui/input"
@@ -12,7 +11,7 @@ import type { QuickAddResult } from "@spy4x/platform"
 import { QuickAdd } from "@spy4x/preact-ui/quick-add"
 import { FocusKeeper } from "./task-focus.tsx"
 import { EmptyBody, LoadingBody, ScreenLayout } from "./task-screen.tsx"
-import { TaskTree } from "./task-tree.tsx"
+import { flatNodes, TaskTree } from "./task-tree.tsx"
 
 /** Props of {@link ListScreen}. */
 export interface ListScreenProps {
@@ -32,8 +31,9 @@ export interface ListScreenProps {
   /** The tags the list is narrowed to. A task shows when it has at least one of them. */
   activeTags: readonly string[]
   onActiveTagsChange: (tags: string[]) => void
-  showCompleted: boolean
-  onShowCompletedChange: (show: boolean) => void
+  /** Which finished tasks show, in their own section below the open ones. */
+  completedRange: CompletedRange
+  onCompletedRangeChange: (range: CompletedRange) => void
   onComplete: (task: Task, done: boolean) => void
   onOpen: (task: Task) => void
   /** Creates a task in this list. */
@@ -54,6 +54,43 @@ const SORT_OPTIONS = [
   { value: SortMode.Title, label: `Title` },
 ]
 
+/** Which finished tasks a list shows, by when they were completed. */
+export enum CompletedRange {
+  Hidden = `hidden`,
+  Today = `today`,
+  Week = `week`,
+  All = `all`,
+}
+
+const COMPLETED_OPTIONS = [
+  { value: CompletedRange.Hidden, label: `Hidden` },
+  { value: CompletedRange.Today, label: `Today` },
+  { value: CompletedRange.Week, label: `Last 7 days` },
+  { value: CompletedRange.All, label: `All time` },
+]
+
+/** When the task was completed: its `COMPLETED` line, which RFC 5545 says is UTC. */
+export function completedAt(task: Pick<Task, `ics`>): Date | undefined {
+  const m = /^COMPLETED[^:\r\n]*:(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})/m.exec(task.ics)
+  return m ? new Date(Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6])) : undefined
+}
+
+/** `YYYY-MM-DD` of `date` in `zone`, which sorts as text. */
+const dayIn = (date: Date, zone: string) => date.toLocaleDateString(`en-CA`, { timeZone: zone })
+
+/**
+ * Whether a finished task falls in `range`: completed on today's date, or on one of the last seven
+ * dates, in `zone`. A finished task with no completion time (a cancelled one) shows only under All.
+ */
+export function inCompletedRange(task: Task, range: CompletedRange, now: Date, zone: string) {
+  if (range === CompletedRange.All) return true
+  if (range === CompletedRange.Hidden) return false
+  const at = completedAt(task)
+  if (!at) return false
+  const from = range === CompletedRange.Today ? now : new Date(now.getTime() - 6 * 86_400_000)
+  return dayIn(at, zone) >= dayIn(from, zone)
+}
+
 /** The tags the tasks carry, each once, in alphabetical order. */
 function tagsOf(tasks: readonly Task[]): string[] {
   return [...new Set(tasks.flatMap((task) => task.tags))].sort((a, b) => a.localeCompare(b))
@@ -69,17 +106,19 @@ function tagsOf(tasks: readonly Task[]): string[] {
 export function ListScreen(props: ListScreenProps): JSX.Element {
   const { list, tasks, zone } = props
   // A pressed chip stays even when no shown task carries its tag, so the person can still clear it.
+  const finished = tasks
+    .filter((task) =>
+      !isOpen(task) && inCompletedRange(task, props.completedRange, props.now, zone)
+    )
+    .sort((a, b) => (completedAt(b)?.getTime() ?? 0) - (completedAt(a)?.getTime() ?? 0))
   const allTags = [
-    ...new Set([
-      ...tagsOf(props.showCompleted ? tasks : tasks.filter(isOpen)),
-      ...props.activeTags,
-    ]),
+    ...new Set([...tagsOf([...tasks.filter(isOpen), ...finished]), ...props.activeTags]),
   ].sort((a, b) => a.localeCompare(b))
-  const shown = tasks.filter((task) =>
-    (props.showCompleted || isOpen(task)) &&
-    (props.activeTags.length === 0 || task.tags.some((tag) => props.activeTags.includes(tag)))
-  )
+  const tagged = (task: Task) =>
+    props.activeTags.length === 0 || task.tags.some((tag) => props.activeTags.includes(tag))
+  const shown = tasks.filter((task) => isOpen(task) && tagged(task))
   const nodes = buildTree(sortTasks(shown, props.sort, zone), zone)
+  const done = finished.filter(tagged)
   const hasMenu = props.onRename || props.onChangeColor || props.onDelete
 
   const menu = hasMenu
@@ -143,14 +182,20 @@ export function ListScreen(props: ListScreenProps): JSX.Element {
                       data-e2e="sort"
                     />
                   </label>
-                  <Checkbox
-                    checked={props.showCompleted}
-                    labelClass="min-h-11 text-sm"
-                    onChange={(event) => props.onShowCompletedChange(event.currentTarget.checked)}
-                    data-e2e="show-completed"
-                  >
-                    Show completed
-                  </Checkbox>
+                  <label class="flex items-center gap-2 text-sm text-muted">
+                    <span>Completed</span>
+                    <Select
+                      aria-label="Completed"
+                      class="min-h-11 w-auto"
+                      options={COMPLETED_OPTIONS}
+                      value={props.completedRange}
+                      onChange={(event) =>
+                        props.onCompletedRangeChange(
+                          event.currentTarget.value as CompletedRange,
+                        )}
+                      data-e2e="completed-range"
+                    />
+                  </label>
                 </div>
                 {allTags.length > 0 && (
                   <ToggleChips
@@ -170,28 +215,47 @@ export function ListScreen(props: ListScreenProps): JSX.Element {
                   icon={<IconCheckCircle class="size-5" />}
                 />
               )
-              : nodes.length === 0
+              : nodes.length === 0 && done.length === 0
               ? (
                 <EmptyBody
                   title={props.activeTags.length > 0 ? `No task has these tags` : `All done`}
                   description={props.activeTags.length > 0
                     ? `Clear a tag filter to see more.`
-                    : `Turn on Show completed to see finished tasks.`}
+                    : `Choose a longer time under Completed to see finished tasks.`}
                   icon={<IconFunnel class="size-5" />}
                 />
               )
               : (
-                <FocusKeeper label="Tasks">
-                  <TaskTree
-                    label={`${list.name} tasks`}
-                    nodes={nodes}
-                    zone={zone}
-                    now={props.now}
-                    onComplete={props.onComplete}
-                    onOpen={props.onOpen}
-                    onReorder={props.sort === SortMode.Manual ? props.onReorder : undefined}
-                  />
-                </FocusKeeper>
+                <>
+                  {nodes.length > 0 && (
+                    <FocusKeeper label="Tasks">
+                      <TaskTree
+                        label={`${list.name} tasks`}
+                        nodes={nodes}
+                        zone={zone}
+                        now={props.now}
+                        onComplete={props.onComplete}
+                        onOpen={props.onOpen}
+                        onReorder={props.sort === SortMode.Manual ? props.onReorder : undefined}
+                      />
+                    </FocusKeeper>
+                  )}
+                  {done.length > 0 && (
+                    <section class="flex flex-col gap-2" data-e2e="completed-section">
+                      <h2 class="text-sm font-medium text-muted">Completed · {done.length}</h2>
+                      <FocusKeeper label="Completed tasks">
+                        <TaskTree
+                          label={`${list.name} completed tasks`}
+                          nodes={flatNodes(done)}
+                          zone={zone}
+                          now={props.now}
+                          onComplete={props.onComplete}
+                          onOpen={props.onOpen}
+                        />
+                      </FocusKeeper>
+                    </section>
+                  )}
+                </>
               )}
           </div>
         )}
