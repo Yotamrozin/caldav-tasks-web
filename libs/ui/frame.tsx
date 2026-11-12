@@ -74,8 +74,8 @@ export function AppLink(
 }
 
 /**
- * The app's frame: a top bar with the name and Search, the caller's `sidebar` on the left from
- * `md` up, the page in `<main>`, and a tab bar of the five destinations on a phone.
+ * The app's frame: the caller's `sidebar` on the left from `md` up, headed by the name and
+ * Search, the page in `<main>`, and a tab bar of the five destinations on a phone.
  */
 export function AppFrame(
   { currentPath, navigate, sidebar, children }: {
@@ -95,40 +95,42 @@ export function AppFrame(
       >
         Skip to content
       </a>
-      <header class="sticky top-0 z-20 flex h-18 shrink-0 items-center justify-between gap-4 border-b border-subtle bg-surface px-4 md:px-8">
-        <AppLink
-          href={PATHS.today}
-          navigate={navigate}
-          class="flex items-center gap-3 text-lg font-semibold"
-        >
-          <span class="flex size-7 items-center justify-center rounded-md bg-accent text-accent-foreground">
-            <IconCheck class="size-4" aria-hidden="true" />
-          </span>
-          To do
-        </AppLink>
-        <AppLink
-          href={PATHS.search}
-          navigate={navigate}
-          class="flex min-h-11 items-center gap-2 rounded-md px-2 text-sm text-muted hover:text-foreground"
-          data-e2e="header-search"
-        >
-          <IconLens class="size-4" aria-hidden="true" />
-          <span class="max-sm:sr-only">Search tasks</span>
-          <kbd
-            class="ms-1 rounded border border-subtle px-1 font-sans text-xs max-sm:hidden"
-            aria-hidden="true"
-          >
-            /
-          </kbd>
-        </AppLink>
-      </header>
       <div class="flex flex-1">
         {sidebar && (
           <aside
             class="hidden w-90 shrink-0 border-r border-subtle bg-surface md:block"
             data-e2e="sidebar"
           >
-            <div class="px-6 pt-12 pb-8">{sidebar}</div>
+            <div class="px-6 pt-6 pb-8">
+              <div class="mb-8 flex items-center justify-between gap-2">
+                <AppLink
+                  href={PATHS.today}
+                  navigate={navigate}
+                  class="flex items-center gap-3 text-lg font-semibold"
+                >
+                  <span class="flex size-7 items-center justify-center rounded-md bg-accent text-accent-foreground">
+                    <IconCheck class="size-4" aria-hidden="true" />
+                  </span>
+                  To do
+                </AppLink>
+                <AppLink
+                  href={PATHS.search}
+                  navigate={navigate}
+                  aria-label="Search tasks"
+                  class="flex h-8 items-center gap-2 rounded-md px-2 text-sm text-muted hover:bg-hover hover:text-foreground"
+                  data-e2e="header-search"
+                >
+                  <IconLens class="size-4" aria-hidden="true" />
+                  <kbd
+                    class="rounded border border-subtle px-1 font-sans text-xs"
+                    aria-hidden="true"
+                  >
+                    /
+                  </kbd>
+                </AppLink>
+              </div>
+              {sidebar}
+            </div>
           </aside>
         )}
         <main id="main" tabindex={-1} class="min-w-0 flex-1 pb-16 outline-none md:pb-0">

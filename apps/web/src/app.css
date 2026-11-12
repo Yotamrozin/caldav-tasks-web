@@ -133,7 +133,11 @@ input[type="checkbox"] {
   margin-inline-end: 0.25rem;
 }
 .task-sortable-top > ul > li > [data-sortable-handle] {
-  margin-top: 0.875rem;
+  margin-top: 0.25rem;
+}
+.task-sortable:not(.task-sortable-top) [data-sortable-handle] {
+  height: 2rem;
+  margin-top: 0;
 }
 
 /* A row's Edit button shows on hover or keyboard focus (always, on a touch screen). */

@@ -187,8 +187,8 @@ export function ListScreen(props: ListScreenProps): JSX.Element {
   })
 
   return (
-    <div class="flex w-full max-w-6xl flex-col gap-8 px-4 py-6 md:px-12 md:pt-12 md:pb-16">
-      <header class="flex flex-col gap-3" data-e2e="page-header">
+    <div class="flex w-full max-w-6xl flex-col gap-4 px-4 py-4 md:px-12 md:pt-8 md:pb-16">
+      <header class="flex flex-col gap-1" data-e2e="page-header">
         <a
           href={PATHS.lists}
           aria-label="Lists"
@@ -202,12 +202,42 @@ export function ListScreen(props: ListScreenProps): JSX.Element {
           <IconArrowLeft class="size-4" aria-hidden="true" />
           Lists
         </a>
-        <div class="flex items-center justify-between gap-4">
-          <h1 class="min-w-0 break-words text-[32px] font-bold leading-10 tracking-tight">
-            {list.name}
+        <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
+          <h1 class="flex min-w-0 items-baseline gap-3 text-2xl font-bold tracking-tight">
+            <span class="break-words">{list.name}</span>
+            <span class="text-[15px] font-normal tracking-normal text-muted">
+              {openShown} open
+            </span>
           </h1>
-          <div class="flex shrink-0 items-center gap-1">
-            <p class="text-[13px] text-muted max-sm:hidden">{today}</p>
+          <div class="ms-auto flex flex-wrap items-center gap-2">
+            <p class="pe-2 text-[13px] text-muted max-lg:hidden">{today}</p>
+            {!props.loading && tasks.length > 0 && (
+              <div class="flex flex-wrap items-center gap-2" data-e2e="list-controls">
+                {allTags.length > 0 && (
+                  <MenuSelect
+                    label="Filter by tag"
+                    icon={<IconFunnel class="size-4 text-muted" aria-hidden="true" />}
+                    value={props.activeTags[0] ?? ``}
+                    options={[
+                      { value: ``, label: `Filter` },
+                      ...allTags.map((tag) => ({ value: tag, label: `#${tag}` })),
+                    ]}
+                    onChange={(tag) => props.onActiveTagsChange(tag ? [tag] : [])}
+                    e2e="tag-filter"
+                  />
+                )}
+                <MenuSelect
+                  label="Sort by"
+                  icon={<IconArrowDown class="size-4 text-muted" aria-hidden="true" />}
+                  prefix="Order:"
+                  value={props.sort}
+                  options={SORT_OPTIONS}
+                  onChange={(mode) =>
+                    props.onSortChange(Number(mode) as SortMode)}
+                  e2e="sort"
+                />
+              </div>
+            )}
             {hasMenu && (
               <Dropdown
                 trigger={<IconEllipsisVertical class="size-4" aria-hidden="true" />}
@@ -229,9 +259,6 @@ export function ListScreen(props: ListScreenProps): JSX.Element {
             )}
           </div>
         </div>
-        <p class="text-[15px] text-muted">
-          {list.openCount === 1 ? `1 thing to do` : `${list.openCount} things to do`}
-        </p>
       </header>
 
       <div class="md:hidden" data-e2e="phone-quick-add">
@@ -257,39 +284,8 @@ export function ListScreen(props: ListScreenProps): JSX.Element {
         )
         : (
           <>
-            <section class="flex flex-col gap-3" aria-labelledby="incomplete-heading">
-              <div
-                class="flex flex-wrap items-center justify-between gap-3"
-                data-e2e="list-controls"
-              >
-                <h2 id="incomplete-heading" class="flex items-center gap-2 text-lg font-semibold">
-                  Incomplete <Count n={openShown} />
-                </h2>
-                <div class="flex flex-wrap items-center gap-2">
-                  {allTags.length > 0 && (
-                    <MenuSelect
-                      label="Filter by tag"
-                      icon={<IconFunnel class="size-4 text-muted" aria-hidden="true" />}
-                      value={props.activeTags[0] ?? ``}
-                      options={[
-                        { value: ``, label: `Filter` },
-                        ...allTags.map((tag) => ({ value: tag, label: `#${tag}` })),
-                      ]}
-                      onChange={(tag) => props.onActiveTagsChange(tag ? [tag] : [])}
-                      e2e="tag-filter"
-                    />
-                  )}
-                  <MenuSelect
-                    label="Sort by"
-                    icon={<IconArrowDown class="size-4 text-muted" aria-hidden="true" />}
-                    prefix="Order:"
-                    value={props.sort}
-                    options={SORT_OPTIONS}
-                    onChange={(mode) => props.onSortChange(Number(mode) as SortMode)}
-                    e2e="sort"
-                  />
-                </div>
-              </div>
+            <section aria-labelledby="incomplete-heading">
+              <h2 id="incomplete-heading" class="sr-only">Incomplete, {openShown}</h2>
               {nodes.length === 0
                 ? (
                   <p class="rounded-xl border border-subtle bg-surface p-6 text-muted">
@@ -319,12 +315,12 @@ export function ListScreen(props: ListScreenProps): JSX.Element {
             </section>
 
             <section
-              class="flex flex-col gap-3"
+              class="flex flex-col gap-2 pt-4"
               aria-labelledby="completed-heading"
               data-e2e="completed-section"
             >
               <div class="flex flex-wrap items-center justify-between gap-3">
-                <h2 id="completed-heading" class="flex items-center gap-2 text-lg font-semibold">
+                <h2 id="completed-heading" class="flex items-center gap-2 text-base font-semibold">
                   Completed <Count n={done.length} />
                 </h2>
                 <MenuSelect

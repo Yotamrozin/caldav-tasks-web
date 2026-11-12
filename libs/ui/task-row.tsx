@@ -140,10 +140,10 @@ export function TaskRow(props: TaskRowProps): JSX.Element {
         INDENT[Math.min(depth, 3)]
       } ${
         sub
-          ? `min-h-11`
+          ? `min-h-8`
           : props.plain
-          ? `min-h-12`
-          : `min-h-16 border-t border-subtle first:border-t-0`
+          ? `min-h-9`
+          : `min-h-11 border-t border-subtle first:border-t-0`
       }`}
       data-e2e="task-row"
       data-task-uid={task.uid}
@@ -153,13 +153,15 @@ export function TaskRow(props: TaskRowProps): JSX.Element {
         checked={!open}
         aria-label={`Complete ${task.title}`}
         shape="round"
-        labelClass="relative z-10 min-h-11 min-w-11 shrink-0 justify-center"
+        labelClass={`relative z-10 min-w-11 shrink-0 justify-center ${
+          quiet ? `min-h-8` : `min-h-11`
+        }`}
         data-task-check={task.uid}
         data-e2e="task-check"
         onChange={(event) =>
           props.onComplete(task, (event.currentTarget as HTMLInputElement).checked)}
       />
-      <div class="min-w-0 flex-1 py-2">
+      <div class={`min-w-0 flex-1 ${quiet ? `py-1` : `py-2`}`}>
         {renaming
           ? (
             <input
@@ -187,7 +189,7 @@ export function TaskRow(props: TaskRowProps): JSX.Element {
               type="button"
               class={`block w-full cursor-pointer text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-ring)] ${
                 props.onRename ? `cursor-text` : `after:absolute after:inset-0 after:content-['']`
-              } ${quiet ? `text-[15px]` : `text-base`}`}
+              } ${sub ? `text-sm` : quiet ? `text-[15px]` : `text-base`}`}
               onClick={() => props.onRename ? setRenaming(true) : props.onOpen(task)}
               data-e2e="task-open"
             >
@@ -201,7 +203,7 @@ export function TaskRow(props: TaskRowProps): JSX.Element {
         {expandable && (
           <button
             type="button"
-            class="relative z-10 inline-flex min-h-11 cursor-pointer items-center gap-1 rounded-md px-1 text-[13px] text-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-[var(--color-ring)]"
+            class="relative z-10 inline-flex min-h-8 cursor-pointer items-center gap-1 rounded-md px-1 text-[13px] text-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-[var(--color-ring)]"
             aria-expanded={expanded}
             aria-label={`${expanded ? `Hide` : `Show`} ${subtaskCount} ${
               subtaskCount === 1 ? `subtask` : `subtasks`
