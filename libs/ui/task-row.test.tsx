@@ -41,7 +41,7 @@ Deno.test("an open task is unchecked and a completed one is checked, struck thro
   const done = html({ task: makeTask(`1`, `Buy oat milk`, { status: TaskStatus.Completed }) })
   expect(done).toMatch(/<input[^>]*\schecked(?=[\s=/>])/)
   expect(done).toContain(`line-through`)
-  expect(done).toMatch(/line-through opacity-60/)
+  expect(done).toMatch(/text-muted line-through/)
 })
 
 Deno.test("a done task fades only its title, so the meta line keeps its contrast", () => {
@@ -51,8 +51,8 @@ Deno.test("a done task fades only its title, so the meta line keeps its contrast
       due: dateOnly(`2026-10-09`),
     }),
   })
-  expect(done.match(/opacity-60/g)?.length).toBe(1)
-  expect(done).toMatch(/<span class="break-words line-through opacity-60">/)
+  expect(done.match(/line-through/g)?.length).toBe(1)
+  expect(done).toMatch(/<span class="break-words text-muted line-through">/)
 })
 
 Deno.test("a completed task with a past due date is not coloured as overdue", () => {
@@ -93,7 +93,7 @@ Deno.test("the meta line colours overdue and today's dates and says what a date-
   const overdue = html({ task: makeTask(`1`, `A`, { due: dateOnly(`2026-10-07`) }) })
   expect(overdue).toMatch(/text-danger[^>]*>Yesterday</)
   const today = html({ task: makeTask(`1`, `A`, { due: dateTime(`2026-10-08`, `14:00:00`) }) })
-  expect(today).toMatch(/text-accent-text[^>]*>Today 14:00</)
+  expect(today).toMatch(/text-warning[^>]*>Today 14:00</)
   const later = html({ task: makeTask(`1`, `A`, { due: dateOnly(`2026-10-15`) }) })
   expect(later).toMatch(/text-muted[^>]*>Thu 15 Oct</)
 })
@@ -105,8 +105,8 @@ Deno.test("the meta line names the list, shows up to three tags and counts the r
   })
   expect(out).toContain(`Errands`)
   expect(out).toContain(`#6aa84f`)
-  expect(out).toContain(`#one`)
-  expect(out).toContain(`#three`)
+  expect(out).toContain(`#</span>one`)
+  expect(out).toContain(`#</span>three`)
   expect(out).not.toContain(`#four`)
   expect(out).toContain(`+2`)
 })

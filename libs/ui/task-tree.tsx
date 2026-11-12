@@ -2,7 +2,7 @@ import type { JSX } from "preact"
 import { useState } from "preact/hooks"
 import { flattenTree } from "@spy4x/platform/universal/ical-tasks-view"
 import { SortableList } from "@spy4x/preact-ui"
-import type { Task, TaskNode } from "@spy4x/time/ical-tasks-model"
+import { isOpen, type Task, type TaskNode } from "@spy4x/time/ical-tasks-model"
 import { type RowList, TaskRow } from "./task-row.tsx"
 
 /** Props of {@link TaskTree}. */
@@ -37,6 +37,14 @@ function descendants(node: TaskNode): number {
   return node.children.reduce((sum, child) => sum + 1 + descendants(child), 0)
 }
 
+/** How many tasks below a node, at any depth, are finished. */
+function doneDescendants(node: TaskNode): number {
+  return node.children.reduce(
+    (sum, child) => sum + (isOpen(child.task) ? 0 : 1) + doneDescendants(child),
+    0,
+  )
+}
+
 /**
  * A list of {@link TaskRow}s with their subtasks indented underneath. A row with subtasks has an
  * expander; the hidden subtasks are the ones the viewer collapsed, so the state is theirs and
@@ -46,9 +54,11 @@ export function TaskTree(props: TaskTreeProps): JSX.Element {
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(props.collapsed ?? new Set())
   const rows = flattenTree(props.nodes, collapsed)
   const counts = new Map<string, number>()
+  const dones = new Map<string, number>()
   const index = (nodes: readonly TaskNode[]) => {
     for (const node of nodes) {
       counts.set(node.task.uid, descendants(node))
+      dones.set(node.task.uid, doneDescendants(node))
       index(node.children)
     }
   }
@@ -70,6 +80,7 @@ export function TaskTree(props: TaskTreeProps): JSX.Element {
           nodes={props.nodes}
           collapsed={collapsed}
           counts={counts}
+          dones={dones}
           setExpanded={setExpanded}
           tree={props}
         />
@@ -88,6 +99,7 @@ export function TaskTree(props: TaskTreeProps): JSX.Element {
           depth={depth}
           list={props.listOf?.(task)}
           subtaskCount={counts.get(task.uid)}
+          doneSubtaskCount={dones.get(task.uid)}
           expanded={!collapsed.has(task.uid)}
           onExpandedChange={setExpanded}
           onComplete={props.onComplete}
@@ -102,6 +114,7 @@ interface SortableGroupProps {
   nodes: readonly TaskNode[]
   collapsed: ReadonlySet<string>
   counts: ReadonlyMap<string, number>
+  dones: ReadonlyMap<string, number>
   setExpanded: (task: Task, expanded: boolean) => void
   tree: TaskTreeProps
   nested?: boolean
@@ -132,6 +145,7 @@ function SortableGroup(props: SortableGroupProps): JSX.Element {
               now={tree.now}
               list={tree.listOf?.(task)}
               subtaskCount={props.counts.get(task.uid)}
+              doneSubtaskCount={props.dones.get(task.uid)}
               expanded={open}
               onExpandedChange={props.setExpanded}
               onComplete={tree.onComplete}

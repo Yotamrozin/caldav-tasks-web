@@ -1,5 +1,5 @@
 import type { JSX } from "preact"
-import { IconArrowPath, IconBell, IconChevronRight, IconFlag } from "@spy4x/preact-icons"
+import { IconArrowPath, IconBell, IconChevronDown, IconFlag } from "@spy4x/preact-icons"
 import { Checkbox } from "@spy4x/preact-ui/checkbox"
 import { dueLabel, DueTone } from "./due-label.ts"
 import {
@@ -26,6 +26,8 @@ export interface TaskRowProps {
   list?: RowList
   /** How many subtasks are listed under the row. Greater than zero adds the expander. */
   subtaskCount?: number
+  /** How many of those are done, for "1 of 3 subtasks". */
+  doneSubtaskCount?: number
   /** Whether the subtasks are shown. Only read when `subtaskCount` is greater than zero. */
   expanded?: boolean
   onExpandedChange?: (task: Task, expanded: boolean) => void
@@ -37,26 +39,26 @@ export interface TaskRowProps {
   bare?: boolean
 }
 
-const INDENT = [`ps-0`, `ps-6`, `ps-12`, `ps-16`] as const
+const INDENT = [`ps-2`, `ps-12`, `ps-16`, `ps-16`] as const
 const MAX_TAGS = 3
 
 const TONE_CLASS: Record<DueTone, string> = {
   [DueTone.Normal]: `text-muted`,
-  [DueTone.Today]: `text-accent-text font-medium`,
+  [DueTone.Today]: `text-warning font-medium`,
   [DueTone.Overdue]: `text-danger font-medium`,
 }
 
 const FLAG: Record<PriorityBand, { label: string; class: string } | undefined> = {
   [PriorityBand.None]: undefined,
   [PriorityBand.Low]: { label: `Low priority`, class: `text-info` },
-  [PriorityBand.Medium]: { label: `Medium priority`, class: `text-accent-text` },
+  [PriorityBand.Medium]: { label: `Medium priority`, class: `text-warning` },
   [PriorityBand.High]: { label: `High priority`, class: `text-danger` },
 }
 
 /**
- * One task as a dense, tappable row: a round check on the left, the title, then one quiet line of
- * meta (due, list, tags, priority flag, repeat and reminder marks), and the expander for subtasks
- * on the right.
+ * One task as a single line: a round check, the title, then on the right the subtask count (which
+ * shows and hides them), list, priority flag, tags as chips, repeat and reminder marks and the due
+ * date. Subtasks are indented under their parent with no line between them.
  *
  * The check is a real checkbox named "Complete <title>". The title is a button that opens the
  * task; its hit area stretches over the whole row, under the check and the expander. Right Arrow
@@ -72,6 +74,7 @@ export function TaskRow(props: TaskRowProps): JSX.Element {
   const shownTags = task.tags.slice(0, MAX_TAGS)
   const hiddenTags = task.tags.length - shownTags.length
   const expandable = subtaskCount > 0
+  const sub = depth > 0
 
   const setExpanded = (next: boolean) => props.onExpandedChange?.(task, next)
   const onKeyDown = (event: JSX.TargetedKeyboardEvent<HTMLLIElement>) => {
@@ -88,8 +91,8 @@ export function TaskRow(props: TaskRowProps): JSX.Element {
   const Tag = (props.bare ? `div` : `li`) as `li`
   return (
     <Tag
-      class={`isolate relative flex items-start gap-1 border-b border-subtle ${
-        INDENT[Math.min(depth, 3)]
+      class={`isolate relative flex items-center gap-2 pe-4 ${INDENT[Math.min(depth, 3)]} ${
+        sub ? `` : `border-t border-subtle first:border-t-0`
       }`}
       data-e2e="task-row"
       data-task-uid={task.uid}
@@ -105,67 +108,92 @@ export function TaskRow(props: TaskRowProps): JSX.Element {
         onChange={(event) =>
           props.onComplete(task, (event.currentTarget as HTMLInputElement).checked)}
       />
-      <div class="min-w-0 flex-1 py-2">
+      <div class={`min-w-0 flex-1 ${sub ? `py-2` : `py-3`}`}>
         <button
           type="button"
-          class="block w-full cursor-pointer text-left text-base after:absolute after:inset-0 after:content-[''] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-ring)]"
+          class={`block w-full cursor-pointer text-left after:absolute after:inset-0 after:content-[''] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-ring)] ${
+            sub ? `text-sm` : `text-base`
+          }`}
           onClick={() => props.onOpen(task)}
           data-e2e="task-open"
         >
-          <span class={`break-words ${open ? `` : `line-through opacity-60`}`}>{task.title}</span>
+          <span class={`break-words ${open ? `` : `text-muted line-through`}`}>{task.title}</span>
         </button>
-        <p class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">
-          {due && <span class={TONE_CLASS[due.tone]} data-e2e="task-due">{due.text}</span>}
-          {list && (
-            <span class="inline-flex min-w-0 items-center gap-1">
-              <span
-                class="size-2 shrink-0 rounded-full bg-track"
-                style={list.color ? { backgroundColor: list.color } : undefined}
-                aria-hidden="true"
-              />
-              <span class="truncate">{list.name}</span>
-            </span>
-          )}
-          {shownTags.map((tag) => <span key={tag}>#{tag}</span>)}
-          {hiddenTags > 0 && <span>+{hiddenTags}</span>}
-          {flag && (
-            <span class={`inline-flex items-center ${flag.class}`}>
-              <IconFlag class="size-4" aria-hidden="true" />
-              <span class="sr-only">{flag.label}</span>
-            </span>
-          )}
-          {task.repeatRule !== undefined && (
-            <span class="inline-flex items-center">
-              <IconArrowPath class="size-4" aria-hidden="true" />
-              <span class="sr-only">Repeats</span>
-            </span>
-          )}
-          {task.reminders.length > 0 && (
-            <span class="inline-flex items-center">
-              <IconBell class="size-4" aria-hidden="true" />
-              <span class="sr-only">Has a reminder</span>
-            </span>
-          )}
-        </p>
       </div>
-      {expandable && (
-        <button
-          type="button"
-          class="relative z-10 inline-flex min-h-11 min-w-11 shrink-0 cursor-pointer items-center justify-center gap-1 rounded-md text-sm text-muted hover:bg-hover hover:text-foreground focus-visible:outline-2 focus-visible:outline-[var(--color-ring)]"
-          aria-expanded={expanded}
-          aria-label={`${expanded ? `Hide` : `Show`} ${subtaskCount} ${
-            subtaskCount === 1 ? `subtask` : `subtasks`
-          } of ${task.title}`}
-          onClick={() => setExpanded(!expanded)}
-          data-e2e="task-expand"
-        >
-          <span aria-hidden="true">{subtaskCount}</span>
-          <IconChevronRight
-            class={`size-4 transition-transform ${expanded ? `rotate-90` : ``}`}
-            aria-hidden="true"
-          />
-        </button>
-      )}
+      <div class="flex shrink-0 flex-wrap items-center justify-end gap-x-3 gap-y-1 text-sm text-muted">
+        {expandable && (
+          <button
+            type="button"
+            class="relative z-10 inline-flex min-h-11 cursor-pointer items-center gap-1 rounded-md px-1 text-xs text-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-[var(--color-ring)]"
+            aria-expanded={expanded}
+            aria-label={`${expanded ? `Hide` : `Show`} ${subtaskCount} ${
+              subtaskCount === 1 ? `subtask` : `subtasks`
+            } of ${task.title}`}
+            onClick={() => setExpanded(!expanded)}
+            data-e2e="task-expand"
+          >
+            <span aria-hidden="true">
+              {props.doneSubtaskCount !== undefined
+                ? `${props.doneSubtaskCount} of ${subtaskCount} ${
+                  subtaskCount === 1 ? `subtask` : `subtasks`
+                }`
+                : subtaskCount}
+            </span>
+            <IconChevronDown
+              class={`size-3 transition-transform ${expanded ? `` : `-rotate-90`}`}
+              aria-hidden="true"
+            />
+          </button>
+        )}
+        {list && (
+          <span class="inline-flex min-w-0 items-center gap-1">
+            <span
+              class="size-2 shrink-0 rounded-full bg-track"
+              style={list.color ? { backgroundColor: list.color } : undefined}
+              aria-hidden="true"
+            />
+            <span class="max-w-32 truncate">{list.name}</span>
+          </span>
+        )}
+        {flag && (
+          <span class={`inline-flex items-center ${flag.class}`}>
+            <IconFlag class="size-4" aria-hidden="true" />
+            <span class="sr-only">{flag.label}</span>
+          </span>
+        )}
+        {shownTags.map((tag) => (
+          <span key={tag} class="rounded-md bg-track px-2 py-px text-xs">
+            <span class="sr-only">#</span>
+            {tag}
+          </span>
+        ))}
+        {hiddenTags > 0 && <span class="text-xs">+{hiddenTags}</span>}
+        {task.repeatRule !== undefined && (
+          <span class="inline-flex items-center">
+            <IconArrowPath class="size-4" aria-hidden="true" />
+            <span class="sr-only">Repeats</span>
+          </span>
+        )}
+        {task.reminders.length > 0 && (
+          <span class="inline-flex items-center">
+            <IconBell class="size-4" aria-hidden="true" />
+            <span class="sr-only">Has a reminder</span>
+          </span>
+        )}
+        {!sub && (
+          <span
+            class={`min-w-20 text-right text-sm ${due ? TONE_CLASS[due.tone] : `text-muted`}`}
+            data-e2e={due ? `task-due` : undefined}
+          >
+            {due ? due.text : `No date`}
+          </span>
+        )}
+        {sub && due && (
+          <span class={`text-right text-xs ${TONE_CLASS[due.tone]}`} data-e2e="task-due">
+            {due.text}
+          </span>
+        )}
+      </div>
     </Tag>
   )
 }

@@ -29,7 +29,7 @@ const props = (over: Partial<ListScreenProps> = {}): ListScreenProps => ({
   onSortChange: () => {},
   activeTags: [],
   onActiveTagsChange: () => {},
-  completedRange: CompletedRange.Hidden,
+  completedRange: CompletedRange.Today,
   onCompletedRangeChange: () => {},
   onComplete: () => {},
   onOpen: () => {},
@@ -53,7 +53,7 @@ Deno.test("the list shows its name, a way back to Lists and quick add that says 
 Deno.test("subtasks sit under their parent and completed tasks show below, in their own section", async () => {
   await mount(<ListScreen {...props()} />, async ({ root, rerender }) => {
     expect(titles(root)).toEqual([`Paint the room`, `Buy paint`, `Zebra`, `Apple`])
-    expect(root.querySelector(`[data-e2e="completed-section"]`)).toBeNull()
+    expect(root.querySelector(`[data-e2e="completed-section"] [data-e2e="task-open"]`)).toBeNull()
     await rerender(<ListScreen {...props({ completedRange: CompletedRange.All })} />)
     expect(texts(root, `[data-e2e="completed-section"] [data-e2e="task-open"]`)).toEqual([
       `Done thing`,
@@ -89,21 +89,27 @@ Deno.test("choosing a sort in the menu reports the mode", async () => {
   )
 })
 
-Deno.test("tag chips list each tag once in alphabetical order, and a pressed chip narrows the list to tasks with that tag", async () => {
-  const pressed: string[][] = []
+const TAG_OPTIONS = `[data-e2e="tag-filter"] option`
+
+Deno.test("the tag filter lists each tag once in alphabetical order, and picking one narrows the list to it", async () => {
+  const picked: string[][] = []
   await mount(
     <ListScreen
-      {...props({ activeTags: [`food`], onActiveTagsChange: (tags) => pressed.push(tags) })}
+      {...props({ activeTags: [`food`], onActiveTagsChange: (tags) => picked.push(tags) })}
     />,
-    async ({ root, act }) => {
-      expect(texts(root, `[aria-label="Filter by tag"] button`)).toEqual([`#diy`, `#food`])
+    async ({ root, window, act }) => {
+      expect(texts(root, TAG_OPTIONS)).toEqual([`Filter`, `#diy`, `#food`])
       expect(titles(root)).toEqual([`Apple`])
-      const diy = [
-        ...root.querySelectorAll<HTMLButtonElement>(`[aria-label="Filter by tag"] button`),
-      ]
-        .find((b) => b.textContent === `#diy`)!
-      await act(() => diy.click())
-      expect(pressed).toEqual([[`diy`, `food`]])
+      const select = must<HTMLSelectElement>(root, `[data-e2e="tag-filter"]`)
+      await act(() => {
+        select.value = `diy`
+        select.dispatchEvent(new window.Event(`change`, { bubbles: true }) as never)
+      })
+      await act(() => {
+        select.value = ``
+        select.dispatchEvent(new window.Event(`change`, { bubbles: true }) as never)
+      })
+      expect(picked).toEqual([[`diy`], []])
     },
   )
 })
@@ -113,21 +119,17 @@ Deno.test("with two tag chips pressed, a task carrying only one of them still sh
   expect(out).toEqual([`Paint the room`, `Buy paint`, `Apple`])
 })
 
-Deno.test("tag chips come only from the tasks shown, so showing completed adds a finished task's tag", async () => {
-  const chips = `[aria-label="Filter by tag"] button`
+Deno.test("the tag filter offers only the tags of tasks shown, so showing completed adds a finished task's tag", async () => {
   await mount(<ListScreen {...props()} />, async ({ root, rerender }) => {
-    expect(texts(root, chips)).toEqual([`#diy`, `#food`])
+    expect(texts(root, TAG_OPTIONS)).toEqual([`Filter`, `#diy`, `#food`])
     await rerender(<ListScreen {...props({ completedRange: CompletedRange.All })} />)
-    expect(texts(root, chips)).toEqual([`#chores`, `#diy`, `#food`])
+    expect(texts(root, TAG_OPTIONS)).toEqual([`Filter`, `#chores`, `#diy`, `#food`])
   })
 })
 
-Deno.test("a pressed chip stays visible and pressed when hiding completed hides every task carrying it", async () => {
-  const chips = `[aria-label="Filter by tag"] button`
+Deno.test("a chosen tag stays chosen when no shown task carries it, so it can be cleared", async () => {
   await mount(<ListScreen {...props({ activeTags: [`chores`] })} />, async ({ root }) => {
-    const chores = [...root.querySelectorAll<HTMLButtonElement>(chips)]
-      .find((b) => b.textContent === `#chores`)
-    expect(chores?.getAttribute(`aria-pressed`)).toBe(`true`)
+    expect(must<HTMLSelectElement>(root, `[data-e2e="tag-filter"]`).value).toBe(`chores`)
   })
 })
 
@@ -138,15 +140,15 @@ Deno.test("the Completed menu reports the range picked", async () => {
     async ({ root, window, act }) => {
       const select = must<HTMLSelectElement>(root, `[data-e2e="completed-range"]`)
       await act(() => {
-        select.value = CompletedRange.Today
+        select.value = CompletedRange.Week
         select.dispatchEvent(new window.Event(`change`, { bubbles: true }) as never)
       })
-      expect(ranges).toEqual([CompletedRange.Today])
+      expect(ranges).toEqual([CompletedRange.Week])
     },
   )
 })
 
-Deno.test("Completed shows today's, the last seven days' or every finished task, newest first", () => {
+Deno.test("Completed shows today's, the last 7 or 30 days' or every finished task, newest first", () => {
   const done = (uid: string, title: string, stamp: string) =>
     makeTask(uid, title, {
       status: TaskStatus.Completed,
@@ -159,9 +161,9 @@ Deno.test("Completed shows today's, the last seven days' or every finished task,
     makeTask(`x`, `Cancelled`, { status: TaskStatus.Cancelled }),
   ]
   const shown = (range: CompletedRange) => mount_titles(props({ tasks, completedRange: range }))
-  expect(shown(CompletedRange.Hidden)).toEqual([])
   expect(shown(CompletedRange.Today)).toEqual([`This morning`])
   expect(shown(CompletedRange.Week)).toEqual([`This morning`, `Six days ago`])
+  expect(shown(CompletedRange.Month)).toEqual([`This morning`, `Six days ago`, `Seven days ago`])
   expect(shown(CompletedRange.All)).toEqual([
     `This morning`,
     `Six days ago`,
@@ -199,7 +201,7 @@ Deno.test("an empty list says No tasks yet, and a filter nothing passes says why
   expect(empty).toContain(`No tasks yet`)
   expect(empty).not.toContain(`list-controls`)
   const tagged = renderToString(<ListScreen {...props({ activeTags: [`nothing`] })} />)
-  expect(tagged).toContain(`No task has these tags`)
+  expect(tagged).toContain(`No open task has this tag`)
   const done = renderToString(
     <ListScreen {...props({ tasks: [TASKS[4]] })} />,
   )

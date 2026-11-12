@@ -14,6 +14,11 @@ import { useQuickAdd } from "./use-quick-add.ts"
 /** The list the app opens on, by name. The Today tab still shows Today once the app is open. */
 const HOME_LIST = `daily`
 /** True once the first visit has had its chance to open the home list, or when it started elsewhere. */
+/** The list named Daily, whatever its case or spacing, if there is one. */
+export function homeList<T extends { name: string }>(lists: readonly T[]): T | undefined {
+  return lists.find((list) => list.name.trim().toLowerCase() === HOME_LIST)
+}
+
 let homeHandled = globalThis.location?.pathname !== `/`
 
 /** Today, wired: what is overdue or due today, with a quick add that dates the task today. */
@@ -26,7 +31,7 @@ export function TodayView() {
   useEffect(() => {
     if (homeHandled || !calendarsLoaded.value) return
     homeHandled = true
-    const home = taskLists.value.find((list) => list.name.trim().toLowerCase() === HOME_LIST)
+    const home = homeList(taskLists.value)
     if (home) navigate(listPath(home), { replace: true })
   }, [calendarsLoaded.value])
   return (

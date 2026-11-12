@@ -40,8 +40,8 @@ export function ListView() {
   const listHref = list?.href
   const now = useNow({ zone: browserZone() }).value
   useEffect(() => {
-    if (listHref && completedRange !== CompletedRange.Hidden) void loadCompleted(listHref)
-  }, [listHref, completedRange])
+    if (listHref) void loadCompleted(listHref)
+  }, [listHref])
 
   if (!list) return calendarsLoaded.value ? <NotFoundView /> : <LoadingBody label="Loading list" />
   return (
