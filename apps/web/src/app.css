@@ -31,7 +31,7 @@
   --color-brick: #d0342c; /* overdue and errors */
 
   --font-heading: "General Sans", system-ui, "Segoe UI", sans-serif;
-  --font-sans: "General Sans", system-ui, "Segoe UI", sans-serif;
+  --font-sans: "Inter", system-ui, "Segoe UI", sans-serif;
 }
 
 .dark {
@@ -170,10 +170,41 @@ input[type="checkbox"] {
   }
 }
 
-/* Page titles are the one place the serif is used. */
-header[data-e2e="page-header"] h1 {
+/* Headings are set in General Sans; everything else in Inter. */
+h1,
+h2,
+h3 {
   font-family: var(--font-heading);
+}
+
+/* Inter (Rasmus Andersson, SIL Open Font License), latin, self-hosted. */
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("./fonts/inter-latin-400-normal.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("./fonts/inter-latin-500-normal.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
   font-weight: 600;
+  font-display: swap;
+  src: url("./fonts/inter-latin-600-normal.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("./fonts/inter-latin-700-normal.woff2") format("woff2");
 }
 
 /* General Sans (Indian Type Foundry, ITF Free Font License, from fontshare.com), self-hosted. */

@@ -106,7 +106,7 @@ export function AppFrame(
                 <AppLink
                   href={PATHS.today}
                   navigate={navigate}
-                  class="flex items-center gap-3 text-lg font-semibold"
+                  class="flex items-center gap-3 font-heading text-lg font-semibold"
                 >
                   <span class="flex size-7 items-center justify-center rounded-md bg-accent text-accent-foreground">
                     <IconCheck class="size-4" aria-hidden="true" />
