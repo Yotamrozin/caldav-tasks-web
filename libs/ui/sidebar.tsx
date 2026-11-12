@@ -1,6 +1,14 @@
-import type { JSX } from "preact"
+import type { ComponentChildren, JSX } from "preact"
 import { useRef, useState } from "preact/hooks"
-import { IconChevronRight, IconList, IconPlus, IconWrench } from "@spy4x/preact-icons"
+import {
+  IconCalendar,
+  IconChevronDown,
+  IconChevronRight,
+  IconFlag,
+  IconList,
+  IconPlus,
+  IconWrench,
+} from "@spy4x/preact-icons"
 import { AppLink } from "./frame.tsx"
 
 /** What the New task form hands over. `due` is a `YYYY-MM-DD` date; `priority` the iCalendar one. */
@@ -26,8 +34,6 @@ export interface SidebarProps {
   links: readonly SidebarLink[]
   newListHref: string
   settingsHref: string
-  /** Where a new task goes, named under the button. */
-  targetName?: string
   /** The open top-level tasks a new task can be nested under. */
   parents: readonly { uid: string; title: string }[]
   busy?: boolean
@@ -43,8 +49,59 @@ const PRIORITIES = [
   { value: 1, label: `High` },
 ]
 
-const FIELD =
-  `min-h-11 w-full rounded-lg border border-control bg-surface px-3 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-[var(--color-ring)]`
+const CONTROL =
+  `h-9 w-full rounded-lg border border-subtle bg-surface text-sm text-foreground hover:border-control focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-ring)]`
+
+/** A field's label above its control. */
+function Field(
+  { label, children, hint }: { label: string; children: ComponentChildren; hint?: string },
+) {
+  return (
+    <label class="flex flex-col gap-2">
+      <span class="text-[13px] font-medium">{label}</span>
+      {children}
+      {hint && <span class="text-xs text-muted">{hint}</span>}
+    </label>
+  )
+}
+
+/** A native select with an icon on the left and a chevron on the right. */
+function IconSelect(
+  props: {
+    icon: ComponentChildren
+    value: string
+    onChange: (value: string) => void
+    options: readonly { value: string; label: string }[]
+    active?: boolean
+    e2e: string
+  },
+) {
+  return (
+    <span class="relative block">
+      <span
+        class={`pointer-events-none absolute inset-y-0 start-3 flex items-center ${
+          props.active ? `text-accent-text` : `text-muted`
+        }`}
+      >
+        {props.icon}
+      </span>
+      <select
+        class={`${CONTROL} cursor-pointer appearance-none ps-8 pe-8 ${
+          props.active ? `border-accent bg-selected-soft text-accent-text` : ``
+        }`}
+        value={props.value}
+        onChange={(event) => props.onChange(event.currentTarget.value)}
+        data-e2e={props.e2e}
+      >
+        {props.options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+      </select>
+      <IconChevronDown
+        class="pointer-events-none absolute inset-y-0 end-3 my-auto size-3 text-muted"
+        aria-hidden="true"
+      />
+    </span>
+  )
+}
 
 /** The desktop column: the New task form, the lists with their counts, and Settings. */
 export function Sidebar(props: SidebarProps): JSX.Element {
@@ -81,84 +138,85 @@ export function Sidebar(props: SidebarProps): JSX.Element {
 
   return (
     <div class="flex flex-col gap-6">
-      <form class="flex flex-col gap-4" onSubmit={submit} data-e2e="new-task-form">
-        <div>
-          <h2 class="text-xl font-semibold">New task</h2>
-          <p class="mt-1 text-sm text-muted">Capture a task, then add the details.</p>
+      <form class="flex flex-col gap-6" onSubmit={submit} data-e2e="new-task-form">
+        <div class="flex flex-col gap-1">
+          <h2 class="text-[22px] font-semibold leading-tight">New task</h2>
+          <p class="text-[13px] text-muted">Capture a task, then add the details.</p>
         </div>
-        <label class="flex flex-col gap-2 text-sm font-medium">
-          Task
-          <textarea
-            ref={titleRef}
-            rows={3}
-            class={`${FIELD} resize-none py-2`}
-            placeholder="What do you need to do?"
-            value={title}
-            aria-invalid={error ? true : undefined}
-            onInput={(event) => setTitle(event.currentTarget.value)}
-            onKeyDown={(event) => {
-              if (event.key === `Enter` && !event.shiftKey) void submit(event)
-            }}
-            data-e2e="new-task-title"
-          />
-          {error && <span class="text-sm font-normal text-danger">{error}</span>}
-        </label>
-        <label class="flex flex-col gap-2 text-sm font-medium">
-          Due date
-          <input
-            type="date"
-            class={FIELD}
-            value={due}
-            onInput={(event) => setDue(event.currentTarget.value)}
-            data-e2e="new-task-due"
-          />
-        </label>
-        <label class="flex flex-col gap-2 text-sm font-medium">
-          Priority
-          <select
-            class={FIELD}
+        <Field label="Task">
+          <span class="relative block">
+            <IconPlus
+              class="pointer-events-none absolute start-4 top-3 size-4 text-muted"
+              aria-hidden="true"
+            />
+            <textarea
+              ref={titleRef}
+              class={`${CONTROL} block h-26 resize-none ps-12 pe-3 py-2 text-[15px] leading-6 placeholder:text-placeholder`}
+              placeholder="What do you need to do?"
+              value={title}
+              aria-invalid={error ? true : undefined}
+              onInput={(event) => setTitle(event.currentTarget.value)}
+              onKeyDown={(event) => {
+                if (event.key === `Enter` && !event.shiftKey) void submit(event)
+              }}
+              data-e2e="new-task-title"
+            />
+          </span>
+          {error && <span class="text-xs text-danger">{error}</span>}
+        </Field>
+        <Field label="Due date">
+          <span class="relative block">
+            <IconCalendar
+              class="pointer-events-none absolute inset-y-0 start-3 my-auto size-4 text-muted"
+              aria-hidden="true"
+            />
+            <input
+              type="date"
+              class={`${CONTROL} ps-8 pe-3 ${due ? `` : `text-muted`}`}
+              value={due}
+              onInput={(event) => setDue(event.currentTarget.value)}
+              data-e2e="new-task-due"
+            />
+          </span>
+        </Field>
+        <Field label="Priority">
+          <IconSelect
+            icon={<IconFlag class="size-4" aria-hidden="true" />}
             value={String(priority)}
-            onChange={(event) => setPriority(Number(event.currentTarget.value))}
-            data-e2e="new-task-priority"
-          >
-            {PRIORITIES.map((p) => <option key={p.value} value={String(p.value)}>{p.label}
-            </option>)}
-          </select>
-        </label>
+            onChange={(value) => setPriority(Number(value))}
+            options={PRIORITIES.map((p) => ({ value: String(p.value), label: p.label }))}
+            e2e="new-task-priority"
+          />
+        </Field>
         {props.parents.length > 0 && (
-          <label class="flex flex-col gap-2 text-sm font-medium">
-            Nest under
-            <select
-              class={`${FIELD} ${
-                parentStillThere ? `border-accent bg-selected-soft text-accent-text` : ``
-              }`}
+          <Field label="Nest under" hint="Leave empty to create a top-level task.">
+            <IconSelect
+              icon={<span aria-hidden="true">↳</span>}
               value={parentStillThere ? parentUid : ``}
-              onChange={(event) => setParentUid(event.currentTarget.value)}
-              data-e2e="new-task-parent"
-            >
-              <option value="">None</option>
-              {props.parents.map((p) => <option key={p.uid} value={p.uid}>{p.title}</option>)}
-            </select>
-            <span class="text-xs font-normal text-muted">
-              Leave empty to create a top-level task.
-            </span>
-          </label>
+              onChange={setParentUid}
+              options={[
+                { value: ``, label: `None` },
+                ...props.parents.map((p) => ({ value: p.uid, label: p.title })),
+              ]}
+              active={parentStillThere}
+              e2e="new-task-parent"
+            />
+          </Field>
         )}
         <button
           type="submit"
           disabled={props.busy}
-          class="flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg bg-accent px-4 text-sm font-medium text-accent-foreground hover:opacity-90 disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-ring)]"
+          class="flex h-10 cursor-pointer items-center justify-center gap-2 rounded-lg bg-accent px-4 text-sm font-medium text-accent-foreground hover:opacity-90 disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-ring)]"
           data-e2e="new-task-add"
         >
           <IconPlus class="size-4" aria-hidden="true" />
           Add task
         </button>
-        {props.targetName && <p class="-mt-2 text-xs text-muted">Added to {props.targetName}</p>}
       </form>
 
-      <nav aria-label="To do lists" class="flex flex-col gap-2 border-t border-subtle pt-6">
+      <nav aria-label="To do lists" class="flex flex-col gap-4 border-t border-subtle pt-6">
         <div class="flex items-center justify-between">
-          <h2 class="flex items-center gap-2 text-lg font-semibold">
+          <h2 class="flex items-center gap-3 text-lg font-semibold">
             <IconList class="size-5" aria-hidden="true" />
             To do lists
           </h2>
@@ -166,12 +224,12 @@ export function Sidebar(props: SidebarProps): JSX.Element {
             href={props.newListHref}
             navigate={props.navigate}
             aria-label="New list"
-            class="flex size-9 items-center justify-center rounded-lg border border-subtle hover:bg-hover"
+            class="flex size-7 items-center justify-center rounded-md border border-subtle text-muted hover:bg-hover hover:text-foreground"
           >
             <IconPlus class="size-4" aria-hidden="true" />
           </AppLink>
         </div>
-        <ul class="flex flex-col gap-1" data-e2e="sidebar-lists">
+        <ul class="-mx-2 flex flex-col gap-px" data-e2e="sidebar-lists">
           {props.links.map((link) => {
             const current = link.href === props.currentPath
             return (
@@ -180,18 +238,18 @@ export function Sidebar(props: SidebarProps): JSX.Element {
                   href={link.href}
                   navigate={props.navigate}
                   aria-current={current ? `page` : undefined}
-                  class={`flex min-h-10 items-center gap-3 rounded-lg px-3 text-base hover:bg-hover ${
-                    current ? `bg-selected-soft font-medium` : ``
+                  class={`flex h-8 items-center gap-4 rounded-lg px-3 text-[15px] ${
+                    current ? `bg-selected-soft` : `hover:bg-hover`
                   }`}
                 >
                   <span
-                    class="size-3 shrink-0 rounded-full bg-accent"
+                    class="size-2.5 shrink-0 rounded-full bg-accent"
                     style={link.color ? { backgroundColor: link.color } : undefined}
                     aria-hidden="true"
                   />
                   <span class="min-w-0 flex-1 truncate">{link.label}</span>
                   {link.count !== undefined && (
-                    <span class="rounded-md bg-track px-2 text-xs text-muted">
+                    <span class="min-w-6 rounded-md bg-chip px-1 text-center text-xs text-muted">
                       {link.count}
                       <span class="sr-only">{link.count === 1 ? ` open task` : ` open tasks`}</span>
                     </span>
@@ -203,16 +261,18 @@ export function Sidebar(props: SidebarProps): JSX.Element {
         </ul>
       </nav>
 
-      <AppLink
-        href={props.settingsHref}
-        navigate={props.navigate}
-        aria-current={props.currentPath === props.settingsHref ? `page` : undefined}
-        class="flex min-h-11 items-center gap-3 border-t border-subtle px-3 pt-4 text-base hover:text-accent-text"
-      >
-        <IconWrench class="size-5" aria-hidden="true" />
-        <span class="flex-1">Settings</span>
-        <IconChevronRight class="size-4 text-muted" aria-hidden="true" />
-      </AppLink>
+      <div class="border-t border-subtle pt-4">
+        <AppLink
+          href={props.settingsHref}
+          navigate={props.navigate}
+          aria-current={props.currentPath === props.settingsHref ? `page` : undefined}
+          class="-mx-2 flex h-10 items-center gap-3 rounded-lg px-2 text-[15px] hover:bg-hover"
+        >
+          <IconWrench class="size-5" aria-hidden="true" />
+          <span class="flex-1">Settings</span>
+          <IconChevronRight class="size-4 text-muted" aria-hidden="true" />
+        </AppLink>
+      </div>
     </div>
   )
 }

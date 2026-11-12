@@ -37,6 +37,8 @@ export interface TaskRowProps {
   onOpen: (task: Task) => void
   /** Draws a `div` instead of an `li`, for a row that sits inside another list's item. */
   bare?: boolean
+  /** A quiet row with no line above it and no "No date", as in the Completed section. */
+  plain?: boolean
 }
 
 const INDENT = [`ps-2`, `ps-12`, `ps-16`, `ps-16`] as const
@@ -75,6 +77,7 @@ export function TaskRow(props: TaskRowProps): JSX.Element {
   const hiddenTags = task.tags.length - shownTags.length
   const expandable = subtaskCount > 0
   const sub = depth > 0
+  const quiet = sub || props.plain
 
   const setExpanded = (next: boolean) => props.onExpandedChange?.(task, next)
   const onKeyDown = (event: JSX.TargetedKeyboardEvent<HTMLLIElement>) => {
@@ -92,7 +95,11 @@ export function TaskRow(props: TaskRowProps): JSX.Element {
   return (
     <Tag
       class={`isolate relative flex items-center gap-2 pe-4 ${INDENT[Math.min(depth, 3)]} ${
-        sub ? `` : `border-t border-subtle first:border-t-0`
+        sub
+          ? `min-h-11`
+          : props.plain
+          ? `min-h-12`
+          : `min-h-16 border-t border-subtle first:border-t-0`
       }`}
       data-e2e="task-row"
       data-task-uid={task.uid}
@@ -108,11 +115,11 @@ export function TaskRow(props: TaskRowProps): JSX.Element {
         onChange={(event) =>
           props.onComplete(task, (event.currentTarget as HTMLInputElement).checked)}
       />
-      <div class={`min-w-0 flex-1 ${sub ? `py-2` : `py-3`}`}>
+      <div class="min-w-0 flex-1 py-2">
         <button
           type="button"
           class={`block w-full cursor-pointer text-left after:absolute after:inset-0 after:content-[''] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-ring)] ${
-            sub ? `text-sm` : `text-base`
+            quiet ? `text-[15px]` : `text-base`
           }`}
           onClick={() => props.onOpen(task)}
           data-e2e="task-open"
@@ -120,11 +127,11 @@ export function TaskRow(props: TaskRowProps): JSX.Element {
           <span class={`break-words ${open ? `` : `text-muted line-through`}`}>{task.title}</span>
         </button>
       </div>
-      <div class="flex shrink-0 flex-wrap items-center justify-end gap-x-3 gap-y-1 text-sm text-muted">
+      <div class="flex shrink-0 flex-wrap items-center justify-end gap-x-4 gap-y-1 text-[13px] text-muted">
         {expandable && (
           <button
             type="button"
-            class="relative z-10 inline-flex min-h-11 cursor-pointer items-center gap-1 rounded-md px-1 text-xs text-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-[var(--color-ring)]"
+            class="relative z-10 inline-flex min-h-11 cursor-pointer items-center gap-1 rounded-md px-1 text-[13px] text-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-[var(--color-ring)]"
             aria-expanded={expanded}
             aria-label={`${expanded ? `Hide` : `Show`} ${subtaskCount} ${
               subtaskCount === 1 ? `subtask` : `subtasks`
@@ -162,7 +169,7 @@ export function TaskRow(props: TaskRowProps): JSX.Element {
           </span>
         )}
         {shownTags.map((tag) => (
-          <span key={tag} class="rounded-md bg-track px-2 py-px text-xs">
+          <span key={tag} class="rounded bg-chip px-2 py-px text-xs">
             <span class="sr-only">#</span>
             {tag}
           </span>
@@ -180,17 +187,12 @@ export function TaskRow(props: TaskRowProps): JSX.Element {
             <span class="sr-only">Has a reminder</span>
           </span>
         )}
-        {!sub && (
+        {(due || !quiet) && (
           <span
-            class={`min-w-20 text-right text-sm ${due ? TONE_CLASS[due.tone] : `text-muted`}`}
+            class={`min-w-20 text-right ${due ? TONE_CLASS[due.tone] : `text-muted`}`}
             data-e2e={due ? `task-due` : undefined}
           >
             {due ? due.text : `No date`}
-          </span>
-        )}
-        {sub && due && (
-          <span class={`text-right text-xs ${TONE_CLASS[due.tone]}`} data-e2e="task-due">
-            {due.text}
           </span>
         )}
       </div>

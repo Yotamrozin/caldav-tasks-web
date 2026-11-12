@@ -25,6 +25,8 @@ export interface TaskTreeProps {
    * the index it takes among the others. Tasks only move among their siblings.
    */
   onReorder?: (task: Task, siblings: readonly Task[], toIndex: number) => void
+  /** Quiet rows with no lines between them, as in the Completed section. */
+  plain?: boolean
 }
 
 /** Wraps tasks as a tree with no subtasks, for a view that lists tasks flat. */
@@ -104,6 +106,7 @@ export function TaskTree(props: TaskTreeProps): JSX.Element {
           onExpandedChange={setExpanded}
           onComplete={props.onComplete}
           onOpen={props.onOpen}
+          plain={props.plain}
         />
       ))}
     </ul>
@@ -117,7 +120,8 @@ interface SortableGroupProps {
   dones: ReadonlyMap<string, number>
   setExpanded: (task: Task, expanded: boolean) => void
   tree: TaskTreeProps
-  nested?: boolean
+  /** How deep this group's tasks sit; 0 for the top level. */
+  depth?: number
 }
 
 /**
@@ -129,7 +133,7 @@ function SortableGroup(props: SortableGroupProps): JSX.Element {
   const siblings = nodes.map((node) => node.task)
   return (
     <SortableList
-      class={props.nested ? `ps-6` : undefined}
+      class={props.depth ? `task-sortable` : `task-sortable task-sortable-top`}
       items={nodes.map((node) => ({ id: node.task.uid, node }))}
       itemLabel={({ node }) => node.task.title}
       onMove={(from, to) => tree.onReorder?.(siblings[from], siblings, to)}
@@ -141,6 +145,7 @@ function SortableGroup(props: SortableGroupProps): JSX.Element {
             <TaskRow
               bare
               task={task}
+              depth={props.depth ?? 0}
               zone={tree.zone}
               now={tree.now}
               list={tree.listOf?.(task)}
@@ -152,7 +157,7 @@ function SortableGroup(props: SortableGroupProps): JSX.Element {
               onOpen={tree.onOpen}
             />
             {open && node.children.length > 0 && (
-              <SortableGroup {...props} nodes={node.children} nested />
+              <SortableGroup {...props} nodes={node.children} depth={(props.depth ?? 0) + 1} />
             )}
           </>
         )

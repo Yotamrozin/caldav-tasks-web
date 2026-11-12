@@ -1,14 +1,13 @@
-import type { ComponentChildren, JSX } from "preact"
+import type { ComponentChildren, ComponentType, JSX } from "preact"
 import {
   IconCalendarDays,
   IconCheck,
   IconEllipsisVertical,
   IconLens,
   IconList,
+  type IconProps,
   IconSun,
 } from "@spy4x/preact-icons"
-import type { ComponentType } from "preact"
-import type { IconProps } from "@spy4x/preact-icons"
 
 /** The page each destination opens. Kept here so the router and the navigation cannot drift. */
 export const PATHS = {
@@ -96,14 +95,14 @@ export function AppFrame(
       >
         Skip to content
       </a>
-      <header class="sticky top-0 z-20 flex h-16 items-center justify-between gap-4 border-b border-subtle bg-surface px-4 md:px-8">
+      <header class="sticky top-0 z-20 flex h-18 shrink-0 items-center justify-between gap-4 border-b border-subtle bg-surface px-4 md:px-8">
         <AppLink
           href={PATHS.today}
           navigate={navigate}
           class="flex items-center gap-3 text-lg font-semibold"
         >
-          <span class="flex size-8 items-center justify-center rounded-lg bg-accent text-accent-foreground">
-            <IconCheck class="size-5" aria-hidden="true" />
+          <span class="flex size-7 items-center justify-center rounded-md bg-accent text-accent-foreground">
+            <IconCheck class="size-4" aria-hidden="true" />
           </span>
           To do
         </AppLink>
@@ -113,9 +112,12 @@ export function AppFrame(
           class="flex min-h-11 items-center gap-2 rounded-md px-2 text-sm text-muted hover:text-foreground"
           data-e2e="header-search"
         >
-          <IconLens class="size-5" aria-hidden="true" />
+          <IconLens class="size-4" aria-hidden="true" />
           <span class="max-sm:sr-only">Search tasks</span>
-          <kbd class="rounded border border-subtle px-1 text-xs max-sm:hidden" aria-hidden="true">
+          <kbd
+            class="ms-1 rounded border border-subtle px-1 font-sans text-xs max-sm:hidden"
+            aria-hidden="true"
+          >
             /
           </kbd>
         </AppLink>
@@ -123,12 +125,10 @@ export function AppFrame(
       <div class="flex flex-1">
         {sidebar && (
           <aside
-            class="hidden w-80 shrink-0 border-r border-subtle bg-surface md:block"
+            class="hidden w-90 shrink-0 border-r border-subtle bg-surface md:block"
             data-e2e="sidebar"
           >
-            <div class="sticky top-16 max-h-[calc(100dvh-4rem)] overflow-y-auto p-6">
-              {sidebar}
-            </div>
+            <div class="px-6 pt-12 pb-8">{sidebar}</div>
           </aside>
         )}
         <main id="main" tabindex={-1} class="min-w-0 flex-1 pb-16 outline-none md:pb-0">

@@ -107,7 +107,11 @@ function tagsOf(tasks: readonly Task[]): string[] {
 
 /** A count beside a section heading. */
 function Count({ n }: { n: number }) {
-  return <span class="rounded-md bg-track px-2 py-px text-xs font-normal text-muted">{n}</span>
+  return (
+    <span class="min-w-6 rounded-md bg-chip px-1 text-center text-xs font-normal text-muted">
+      {n}
+    </span>
+  )
 }
 
 /** A native select drawn as a quiet button: an icon, a prefix and the chosen option. */
@@ -123,7 +127,7 @@ function MenuSelect<T extends string | number>(
   },
 ): JSX.Element {
   return (
-    <label class="relative inline-flex min-h-10 items-center gap-2 rounded-lg border border-subtle bg-surface ps-3 pe-2 text-sm text-foreground hover:bg-hover focus-within:outline-2 focus-within:outline-[var(--color-ring)]">
+    <label class="relative inline-flex h-9 items-center gap-2 rounded-lg border border-subtle bg-surface ps-3 pe-3 text-[13px] text-foreground hover:border-control focus-within:outline-2 focus-within:outline-[var(--color-ring)]">
       {props.icon}
       {props.prefix && <span class="text-muted" aria-hidden="true">{props.prefix}</span>}
       <select
@@ -167,7 +171,7 @@ export function ListScreen(props: ListScreenProps): JSX.Element {
   const shown = tasks.filter((task) => inTree(task) && tagged(task))
   const nodes = buildTree(sortTasks(shown, props.sort, zone), zone)
   const done = finished.filter(tagged)
-  const openShown = shown.filter(isOpen).length
+  const openShown = nodes.filter((node) => isOpen(node.task)).length
   const hasMenu = props.onRename || props.onChangeColor || props.onDelete
   const today = props.now.toLocaleDateString(undefined, {
     weekday: `long`,
@@ -177,8 +181,8 @@ export function ListScreen(props: ListScreenProps): JSX.Element {
   })
 
   return (
-    <div class="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-6 md:px-12 md:py-12">
-      <header class="flex flex-col gap-2" data-e2e="page-header">
+    <div class="flex w-full max-w-6xl flex-col gap-8 px-4 py-6 md:px-12 md:pt-12 md:pb-16">
+      <header class="flex flex-col gap-3" data-e2e="page-header">
         <a
           href={PATHS.lists}
           aria-label="Lists"
@@ -192,21 +196,16 @@ export function ListScreen(props: ListScreenProps): JSX.Element {
           <IconArrowLeft class="size-4" aria-hidden="true" />
           Lists
         </a>
-        <div class="flex items-start justify-between gap-4">
-          <h1 class="flex min-w-0 items-center gap-3 text-3xl font-bold tracking-tight md:text-4xl">
-            <span
-              class="size-3 shrink-0 rounded-full bg-track"
-              style={list.color ? { backgroundColor: list.color } : undefined}
-              aria-hidden="true"
-            />
-            <span class="break-words">{list.name}</span>
+        <div class="flex items-center justify-between gap-4">
+          <h1 class="min-w-0 break-words text-[32px] font-bold leading-10 tracking-tight">
+            {list.name}
           </h1>
-          <div class="flex shrink-0 items-center gap-2">
-            <p class="pt-2 text-sm text-muted max-sm:hidden">{today}</p>
+          <div class="flex shrink-0 items-center gap-1">
+            <p class="text-[13px] text-muted max-sm:hidden">{today}</p>
             {hasMenu && (
               <Dropdown
-                trigger={<IconEllipsisVertical class="size-5" aria-hidden="true" />}
-                triggerClasses="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md text-muted hover:bg-hover"
+                trigger={<IconEllipsisVertical class="size-4" aria-hidden="true" />}
+                triggerClasses="inline-flex size-8 items-center justify-center rounded-md text-muted hover:bg-hover"
                 triggerLabel="More actions"
                 menuLabel="More actions"
                 horizontal="right"
@@ -224,7 +223,7 @@ export function ListScreen(props: ListScreenProps): JSX.Element {
             )}
           </div>
         </div>
-        <p class="text-muted">
+        <p class="text-[15px] text-muted">
           {list.openCount === 1 ? `1 thing to do` : `${list.openCount} things to do`}
         </p>
       </header>
@@ -252,7 +251,7 @@ export function ListScreen(props: ListScreenProps): JSX.Element {
         )
         : (
           <>
-            <section class="flex flex-col gap-4" aria-labelledby="incomplete-heading">
+            <section class="flex flex-col gap-3" aria-labelledby="incomplete-heading">
               <div
                 class="flex flex-wrap items-center justify-between gap-3"
                 data-e2e="list-controls"
@@ -311,7 +310,7 @@ export function ListScreen(props: ListScreenProps): JSX.Element {
             </section>
 
             <section
-              class="flex flex-col gap-4"
+              class="flex flex-col gap-3"
               aria-labelledby="completed-heading"
               data-e2e="completed-section"
             >
@@ -334,6 +333,7 @@ export function ListScreen(props: ListScreenProps): JSX.Element {
                     <TaskTree
                       label={`${list.name} completed tasks`}
                       nodes={flatNodes(done)}
+                      plain
                       zone={zone}
                       now={props.now}
                       onComplete={props.onComplete}

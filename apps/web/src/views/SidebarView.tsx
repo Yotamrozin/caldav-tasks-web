@@ -78,7 +78,6 @@ export function SidebarView(
       links={links}
       newListHref={ROUTES.newList}
       settingsHref={PATHS.more}
-      targetName={target?.name}
       parents={parents}
       busy={busy.value}
       onAdd={add}

@@ -25,6 +25,7 @@
   --color-accent: #1a6ff0; /* the one filled action; white text on it */
   --color-accent-text: #1a5fd0; /* the accent as text on the page */
   --color-amber: #d9730d; /* due today, medium priority */
+  --color-chip: #f0f1f3; /* counts and tags */
   --color-sage: #2f9e5b; /* done */
   --color-mist: #1c6aa0; /* info */
   --color-brick: #d0342c; /* overdue and errors */
@@ -44,6 +45,7 @@
   --color-graphite: #9aa0a8;
   --color-accent-text: #8ab4f8;
   --color-amber: #f5a54a;
+  --color-chip: #2a2e34;
   --color-sage: #6fcf97;
   --color-mist: #8ec5ec;
   --color-brick: #f28b82;
@@ -102,6 +104,55 @@ body {
 /* Native checkboxes (the library's, such as "Show completed") follow the done colour. */
 input[type="checkbox"] {
   accent-color: var(--color-sage);
+}
+
+/*
+ * A list in manual order draws through the library's SortableList, which boxes every row and
+ * shows its handle. Here the rows sit in the list's card like any other, and the handle shows on
+ * the right when the pointer is over the row (always, on a touch screen).
+ */
+.task-sortable ul {
+  gap: 0;
+}
+.task-sortable li[data-sortable-item] {
+  align-items: flex-start;
+  gap: 0;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  background: transparent;
+}
+.task-sortable-top > ul > li[data-sortable-item] + li[data-sortable-item] {
+  border-top: 1px solid var(--color-border-subtle);
+}
+.task-sortable [data-sortable-handle] {
+  order: 2;
+  width: 2rem;
+  height: 2.25rem;
+  margin-top: 0.25rem;
+  margin-inline-end: 0.25rem;
+}
+.task-sortable-top > ul > li > [data-sortable-handle] {
+  margin-top: 0.875rem;
+}
+
+/* A done task's check: a pale green circle with a green tick. */
+[data-e2e="task-check"]:checked {
+  border-color: transparent;
+  background-color: color-mix(in oklab, var(--color-sage) 16%, var(--color-surface));
+}
+[data-e2e="task-check"]:checked::after {
+  border-color: var(--color-sage);
+}
+@media (hover: hover) {
+  .task-sortable [data-sortable-handle] {
+    opacity: 0;
+  }
+  .task-sortable li[data-sortable-item]:hover > [data-sortable-handle],
+  .task-sortable [data-sortable-handle]:focus-visible,
+  .task-sortable [data-sortable-handle][aria-pressed="true"] {
+    opacity: 1;
+  }
 }
 
 /* Page titles are the one place the serif is used. */
