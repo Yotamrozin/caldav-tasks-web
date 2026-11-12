@@ -140,6 +140,74 @@ input[type="checkbox"] {
   margin-top: 0;
 }
 
+/*
+ * Notifications: a quiet card in the corner instead of the library's solid fill. The kind shows
+ * only in the icon's colour, and the action (Undo) is a blue text button on the same line.
+ */
+.app-toasts > :not(:last-child) {
+  margin-block-end: 0.5rem;
+}
+.app-toasts > [role="status"],
+.app-toasts > [role="alert"] {
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 0.75rem;
+  background: var(--color-surface);
+  color: var(--color-foreground);
+  padding: 0.625rem 0.75rem 0.625rem 1rem;
+  box-shadow: 0 8px 24px rgb(15 23 42 / 0.08), 0 1px 3px rgb(15 23 42 / 0.06);
+}
+.app-toasts .min-w-0 {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: 0.75rem;
+}
+.app-toasts .min-w-0 > button {
+  margin: 0;
+  padding-block: 0;
+  color: var(--color-accent-text);
+  font-weight: 600;
+  text-decoration: none;
+}
+.app-toasts .min-w-0 > button:hover {
+  text-decoration: underline;
+}
+@media (min-width: 640px) {
+  .app-toasts .min-w-0 > button {
+    min-height: 0;
+    min-width: 0;
+  }
+}
+.app-toasts [aria-label="Dismiss"] {
+  color: var(--color-muted-foreground);
+}
+.app-toasts [aria-label="Dismiss"]:hover {
+  color: var(--color-foreground);
+}
+.app-toasts svg.size-5 {
+  width: 1rem;
+  height: 1rem;
+  align-self: center;
+}
+.app-toasts .bg-success svg.size-5 {
+  color: var(--color-sage);
+}
+.app-toasts .bg-danger-fill svg.size-5 {
+  color: var(--color-brick);
+}
+.app-toasts .bg-warning svg.size-5 {
+  color: var(--color-amber);
+}
+.app-toasts .bg-blue-700 svg.size-5 {
+  color: var(--color-accent);
+}
+/* On a phone the stack sits above the tab bar. */
+@media (max-width: 767px) {
+  .app-toasts {
+    bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+  }
+}
+
 /* A row's Edit button shows on hover or keyboard focus (always, on a touch screen). */
 @media (hover: hover) {
   .row-edit {

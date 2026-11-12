@@ -45,7 +45,12 @@ export function App() {
   return (
     <>
       <Gate />
-      <Toastr toasts={toasts.list.value} onDismiss={toasts.remove} />
+      <Toastr
+        toasts={toasts.list.value}
+        onDismiss={toasts.remove}
+        corner="bottom-right"
+        class="app-toasts"
+      />
     </>
   )
 }
