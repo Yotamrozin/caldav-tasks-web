@@ -50,6 +50,8 @@ export interface TaskRowProps {
    * creates a task beside this one (a subtask of the same parent), and opens the next line.
    */
   onAddSibling?: (task: Task, title: string) => void
+  /** Given, a "Delete" button shows on hover, right of "Edit". */
+  onDelete?: (task: Task) => void
 }
 
 const INDENT = [`ps-2`, `ps-12`, `ps-16`, `ps-16`] as const
@@ -264,6 +266,17 @@ export function TaskRow(props: TaskRowProps): JSX.Element {
             data-e2e="task-edit"
           >
             Edit
+          </button>
+        )}
+        {props.onDelete && (
+          <button
+            type="button"
+            class="row-edit relative z-10 -ms-3 inline-flex h-7 cursor-pointer items-center rounded-md px-2 text-[13px] text-danger/80 hover:bg-danger-soft hover:text-danger focus-visible:outline-2 focus-visible:outline-[var(--color-ring)]"
+            aria-label={`Delete ${task.title}`}
+            onClick={() => props.onDelete?.(task)}
+            data-e2e="task-row-delete"
+          >
+            Delete
           </button>
         )}
         {(due || !quiet) && (

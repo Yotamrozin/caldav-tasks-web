@@ -208,10 +208,11 @@ Deno.test("a row without subtasks has no expander and ignores the arrow keys", a
   )
 })
 
-Deno.test("with onRename, the title renames in place, Enter saves and opens a new line that adds a task beside it", async () => {
+Deno.test("with onRename, the title renames in place, Enter saves and opens a new line that adds a task beside it; Edit and Delete act on it", async () => {
   const renamed: string[] = []
   const added: string[] = []
   const opened: string[] = []
+  const deleted: string[] = []
   await mount(
     <ul>
       <TaskRow
@@ -222,6 +223,7 @@ Deno.test("with onRename, the title renames in place, Enter saves and opens a ne
         onOpen={(task) => opened.push(task.title)}
         onRename={(_task, title) => renamed.push(title)}
         onAddSibling={(_task, title) => added.push(title)}
+        onDelete={(task) => deleted.push(task.title)}
       />
     </ul>,
     async ({ root, window, act }) => {
@@ -245,6 +247,8 @@ Deno.test("with onRename, the title renames in place, Enter saves and opens a ne
       expect(root.querySelector(`[data-e2e="task-new-line"]`)).toBeNull()
       await act(() => must<HTMLButtonElement>(root, `[data-e2e="task-edit"]`).click())
       expect(opened).toEqual([`Buy milk`])
+      await act(() => must<HTMLButtonElement>(root, `[data-e2e="task-row-delete"]`).click())
+      expect(deleted).toEqual([`Buy milk`])
     },
   )
 })

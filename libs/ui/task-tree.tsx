@@ -31,6 +31,8 @@ export interface TaskTreeProps {
   onRename?: (task: Task, title: string) => void
   /** Adds a task beside one, from the line Enter opens while renaming. */
   onAddSibling?: (task: Task, title: string) => void
+  /** Deletes a task from its row's hover "Delete". */
+  onDelete?: (task: Task) => void
 }
 
 /** Wraps tasks as a tree with no subtasks, for a view that lists tasks flat. */
@@ -113,6 +115,7 @@ export function TaskTree(props: TaskTreeProps): JSX.Element {
           plain={props.plain}
           onRename={props.onRename}
           onAddSibling={props.onAddSibling}
+          onDelete={props.onDelete}
         />
       ))}
     </ul>
@@ -163,6 +166,7 @@ function SortableGroup(props: SortableGroupProps): JSX.Element {
               onOpen={tree.onOpen}
               onRename={tree.onRename}
               onAddSibling={tree.onAddSibling}
+              onDelete={tree.onDelete}
             />
             {open && node.children.length > 0 && (
               <SortableGroup {...props} nodes={node.children} depth={(props.depth ?? 0) + 1} />
