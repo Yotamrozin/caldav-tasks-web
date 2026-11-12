@@ -208,6 +208,39 @@ input[type="checkbox"] {
   }
 }
 
+/*
+ * The edit page's library fields (start date, tags, repeat, reminders, new subtask) at the main
+ * screen's size: 36 px controls, 14 px text, 13 px labels.
+ */
+.task-editor :is(.pc-input, .pc-select) {
+  height: 2.25rem;
+  min-height: 2.25rem;
+  padding-block: 0;
+  border-radius: 0.5rem;
+  border-color: var(--color-border-subtle);
+  font-size: 0.875rem;
+}
+.task-editor .pc-textarea {
+  border-radius: 0.5rem;
+  border-color: var(--color-border-subtle);
+  font-size: 0.875rem;
+}
+.task-editor :is(.pc-label, legend) {
+  font-size: 13px;
+  font-weight: 500;
+}
+.task-editor div:has(> #task-tags) {
+  min-height: 2.25rem;
+  padding-block: 0.125rem;
+  border-radius: 0.5rem;
+  border-color: var(--color-border-subtle);
+  font-size: 0.875rem;
+}
+.task-editor [data-e2e="task-subtask"] {
+  font-size: 0.875rem;
+  line-height: 1.75rem;
+}
+
 /* A row's Edit button shows on hover or keyboard focus (always, on a touch screen). */
 @media (hover: hover) {
   .row-edit {

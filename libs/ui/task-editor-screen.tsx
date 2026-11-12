@@ -173,8 +173,8 @@ const PRIORITY_TONE: Record<PriorityBand, string> = {
 
 /** The editor's large controls and their labels. */
 const BIG =
-  "rounded-xl border border-subtle bg-surface text-lg text-foreground placeholder:text-placeholder focus-visible:border-accent focus-visible:outline-2 focus-visible:outline-[var(--color-ring)]"
-const LABEL = "text-lg"
+  "rounded-lg border border-subtle bg-surface text-sm text-foreground placeholder:text-placeholder hover:border-control focus-visible:border-accent focus-visible:outline-2 focus-visible:outline-[var(--color-ring)]"
+const LABEL = "text-[13px] font-medium"
 
 const PRIORITY_OPTIONS = [
   { value: String(PriorityBand.None), label: "None" },
@@ -369,6 +369,7 @@ export function TaskEditorScreen(props: TaskEditorScreenProps): JSX.Element {
   }
 
   const band = bandOf(fields.priority)
+  const listName = props.lists.find((list) => list.href === task.listHref)?.name
   const shownDue = fields.dueDate
     ? new Date(`${fields.dueDate}T12:00:00Z`).toLocaleDateString(undefined, {
       weekday: `long`,
@@ -379,7 +380,7 @@ export function TaskEditorScreen(props: TaskEditorScreenProps): JSX.Element {
     : ``
 
   return (
-    <div class="flex w-full max-w-6xl flex-col gap-6 px-4 py-6 md:px-12 md:pt-12 md:pb-16">
+    <div class="task-editor flex w-full max-w-6xl flex-col gap-6 px-4 py-4 md:px-12 md:pt-8 md:pb-16">
       <UnsavedGuard
         when={dirty && !saving}
         navigate={navigate}
@@ -387,16 +388,27 @@ export function TaskEditorScreen(props: TaskEditorScreenProps): JSX.Element {
         leaveGuard={props.leaveGuard}
       />
       <div class="flex items-center justify-between gap-4">
-        <button
-          type="button"
-          class="-ms-1 inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-md px-1 text-[15px] text-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-[var(--color-ring)]"
-          onClick={back}
-          disabled={saving}
-          data-e2e="task-back"
-        >
-          <IconChevronLeft class="size-4" aria-hidden="true" />
-          Back
-        </button>
+        <div class="flex min-w-0 items-center gap-2">
+          <button
+            type="button"
+            class="-ms-2 inline-flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-md text-muted hover:bg-hover hover:text-foreground focus-visible:outline-2 focus-visible:outline-[var(--color-ring)]"
+            onClick={back}
+            disabled={saving}
+            aria-label="Back"
+            title="Back (saves your changes)"
+            data-e2e="task-back"
+          >
+            <IconChevronLeft class="size-5" aria-hidden="true" />
+          </button>
+          <h1 class="flex min-w-0 items-baseline gap-3 text-2xl font-bold tracking-tight">
+            Edit task
+            {listName && (
+              <span class="truncate text-[15px] font-normal tracking-normal text-muted">
+                {listName}
+              </span>
+            )}
+          </h1>
+        </div>
         <div class="flex items-center gap-2">
           {props.onDelete && (
             <button
@@ -430,9 +442,8 @@ export function TaskEditorScreen(props: TaskEditorScreenProps): JSX.Element {
         onSubmit={save}
         class="space-y-0!"
       >
-        <div class="flex flex-col gap-8" ref={form} data-e2e="task-form">
-          <div class="flex flex-col gap-3">
-            <h1 class="w-fit rounded-md bg-chip px-3 py-1 text-lg font-normal">Edit task</h1>
+        <div class="flex flex-col gap-6" ref={form} data-e2e="task-form">
+          <div class="flex flex-col gap-2">
             <input
               id="task-title"
               name="title"
@@ -441,7 +452,7 @@ export function TaskEditorScreen(props: TaskEditorScreenProps): JSX.Element {
               aria-required="true"
               aria-invalid={errors.title ? true : undefined}
               aria-describedby={errors.title ? "task-title-error" : undefined}
-              class={`${BIG} h-14 w-full px-4 text-[22px]`}
+              class={`${BIG} h-11 w-full px-3 text-base font-medium`}
               value={fields.title}
               onInput={(event) => set({ title: event.currentTarget.value })}
               data-e2e="task-title"
@@ -450,18 +461,18 @@ export function TaskEditorScreen(props: TaskEditorScreenProps): JSX.Element {
             </p>}
           </div>
 
-          <div class="flex flex-wrap items-start gap-x-12 gap-y-6">
-            <div class="flex min-w-0 max-w-xl flex-1 basis-80 flex-col gap-3">
+          <div class="flex flex-wrap items-start gap-x-6 gap-y-6">
+            <div class="flex min-w-0 max-w-xl flex-1 basis-80 flex-col gap-2">
               <label for="task-due-date" class={LABEL}>Due date</label>
-              <div class="flex gap-3">
+              <div class="flex gap-2">
                 <span
-                  class={`${BIG} relative flex h-13 min-w-0 flex-1 items-center gap-3 px-4 focus-within:border-accent focus-within:outline-2 focus-within:outline-[var(--color-ring)]`}
+                  class={`${BIG} relative flex h-9 min-w-0 flex-1 items-center gap-2 px-3 focus-within:border-accent focus-within:outline-2 focus-within:outline-[var(--color-ring)]`}
                 >
-                  <IconCalendar class="size-5 shrink-0 text-muted" aria-hidden="true" />
+                  <IconCalendar class="size-4 shrink-0 text-muted" aria-hidden="true" />
                   <span class={`min-w-0 flex-1 truncate ${shownDue ? `` : `text-muted`}`}>
                     {shownDue || `Choose a date`}
                   </span>
-                  <IconChevronDown class="size-4 shrink-0 text-muted" aria-hidden="true" />
+                  <IconChevronDown class="size-3 shrink-0 text-muted" aria-hidden="true" />
                   <input
                     id="task-due-date"
                     name="task-due-date"
@@ -488,7 +499,7 @@ export function TaskEditorScreen(props: TaskEditorScreenProps): JSX.Element {
                     name="task-due-time"
                     type="time"
                     aria-label="Due time (optional)"
-                    class={`${BIG} h-13 w-36 px-3`}
+                    class={`${BIG} h-9 w-32 px-3`}
                     value={fields.dueTime}
                     onInput={(event) => set({ dueTime: event.currentTarget.value })}
                     data-e2e="task-due-time"
@@ -497,11 +508,11 @@ export function TaskEditorScreen(props: TaskEditorScreenProps): JSX.Element {
               </div>
               {errors.due && <p id="task-due-error" class="text-sm text-danger">{errors.due}</p>}
             </div>
-            <div class="flex flex-col gap-3">
+            <div class="flex flex-col gap-2">
               <label for="task-priority" class={LABEL}>Priority</label>
               <span class="relative block">
                 <IconFlag
-                  class={`pointer-events-none absolute inset-y-0 start-4 my-auto size-5 ${
+                  class={`pointer-events-none absolute inset-y-0 start-3 my-auto size-4 ${
                     PRIORITY_TONE[band]
                   }`}
                   aria-hidden="true"
@@ -509,7 +520,7 @@ export function TaskEditorScreen(props: TaskEditorScreenProps): JSX.Element {
                 <select
                   id="task-priority"
                   name="priority"
-                  class={`${BIG} h-13 w-full min-w-44 cursor-pointer appearance-none ps-12 pe-12`}
+                  class={`${BIG} h-9 w-full min-w-40 cursor-pointer appearance-none ps-8 pe-8`}
                   value={String(band)}
                   // Only a change of band reaches here, so an untouched priority (a 3) is kept.
                   onChange={(event) =>
@@ -523,32 +534,32 @@ export function TaskEditorScreen(props: TaskEditorScreenProps): JSX.Element {
                   ))}
                 </select>
                 <IconChevronDown
-                  class="pointer-events-none absolute inset-y-0 end-4 my-auto size-4 text-muted"
+                  class="pointer-events-none absolute inset-y-0 end-3 my-auto size-3 text-muted"
                   aria-hidden="true"
                 />
               </span>
             </div>
           </div>
 
-          <div class="flex flex-col gap-3">
+          <div class="flex flex-col gap-2">
             <label for="task-notes" class={LABEL}>Notes</label>
             <textarea
               id="task-notes"
               name="notes"
               rows={3}
               placeholder="Add details"
-              class={`${BIG} block w-full resize-y px-4 py-3 text-base`}
+              class={`${BIG} block w-full resize-y px-3 py-2`}
               value={fields.notes}
               onInput={(event) => set({ notes: event.currentTarget.value })}
               data-e2e="task-notes"
             />
           </div>
 
-          <div class="flex flex-col gap-6 border-y border-subtle py-6">
+          <div class="flex flex-col gap-2 border-y border-subtle py-3">
             <details class="group/reminders" open={fields.reminders.length > 0 || undefined}>
-              <summary class="flex min-h-11 cursor-pointer list-none items-center gap-4 text-lg">
+              <summary class="flex min-h-9 cursor-pointer list-none items-center gap-3 text-sm">
                 <span
-                  class="size-6 shrink-0 rounded-full border-2 border-control group-open/reminders:border-accent"
+                  class="size-4 shrink-0 rounded-full border-2 border-control group-open/reminders:border-accent"
                   aria-hidden="true"
                 />
                 Add a reminder <span class="text-muted">(optional)</span>
@@ -570,13 +581,13 @@ export function TaskEditorScreen(props: TaskEditorScreenProps): JSX.Element {
               open={Boolean(fields.startDate || fields.tags.length || fields.repeatRule) ||
                 undefined}
             >
-              <summary class="flex min-h-11 cursor-pointer list-none items-center gap-2 text-base text-muted hover:text-foreground">
+              <summary class="flex min-h-9 cursor-pointer list-none items-center gap-2 text-sm text-muted hover:text-foreground">
                 <IconChevronRight
                   class="size-4 transition-transform group-open:rotate-90"
                   aria-hidden="true"
                 />
                 More options
-                <span class="text-sm">(start date, tags, repeat)</span>
+                <span class="text-xs">(start date, tags, repeat)</span>
               </summary>
               <div class="flex flex-col gap-4 pt-4">
                 <DateRow
@@ -629,12 +640,12 @@ export function TaskEditorScreen(props: TaskEditorScreenProps): JSX.Element {
               {errors.form}
             </p>
           )}
-          <div class="sticky bottom-16 flex gap-4 bg-canvas py-3 sm:static sm:justify-end sm:bg-transparent sm:py-0">
+          <div class="sticky bottom-16 flex gap-2 bg-canvas py-3 sm:static sm:justify-end sm:bg-transparent sm:py-0">
             <Button
               href={backHref}
               navigate={navigate}
               variant="outline"
-              class="h-12 flex-1 rounded-xl px-6 text-lg font-normal sm:flex-none"
+              class="h-9 flex-1 rounded-lg px-4 text-sm font-normal sm:flex-none"
               data-e2e="task-cancel"
             >
               Cancel
@@ -643,7 +654,7 @@ export function TaskEditorScreen(props: TaskEditorScreenProps): JSX.Element {
               type="submit"
               disabled={saving}
               aria-busy={saving ? "true" : undefined}
-              class="h-12 flex-1 cursor-pointer rounded-xl bg-accent px-6 text-lg font-medium text-accent-foreground hover:opacity-90 disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-ring)] sm:flex-none"
+              class="h-9 flex-1 cursor-pointer rounded-lg bg-accent px-4 text-sm font-medium text-accent-foreground hover:opacity-90 disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-ring)] sm:flex-none"
               data-e2e="task-save"
             >
               {saving ? `Saving…` : `Save changes`}

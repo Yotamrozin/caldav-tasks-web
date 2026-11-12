@@ -167,7 +167,7 @@ export function TaskRow(props: TaskRowProps): JSX.Element {
             <input
               ref={field}
               class={`-ms-2 w-full rounded-md border border-accent bg-surface px-2 outline-none ${
-                quiet ? `text-[15px]` : `text-base`
+                quiet ? `text-sm` : `text-[15px]`
               }`}
               defaultValue={task.title}
               aria-label={`Rename ${task.title}`}
@@ -189,7 +189,7 @@ export function TaskRow(props: TaskRowProps): JSX.Element {
               type="button"
               class={`block w-full cursor-pointer text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-ring)] ${
                 props.onRename ? `cursor-text` : `after:absolute after:inset-0 after:content-['']`
-              } ${sub ? `text-sm` : quiet ? `text-[15px]` : `text-base`}`}
+              } ${quiet ? `text-sm` : `text-[15px]`}`}
               onClick={() => props.onRename ? setRenaming(true) : props.onOpen(task)}
               data-e2e="task-open"
             >
@@ -295,7 +295,7 @@ export function TaskRow(props: TaskRowProps): JSX.Element {
           <input
             ref={newLine}
             class={`w-full rounded-md border border-accent bg-surface px-2 outline-none ${
-              quiet ? `text-[15px]` : `text-base`
+              quiet ? `text-sm` : `text-[15px]`
             }`}
             placeholder={sub ? `New subtask` : `New task`}
             aria-label={sub ? `New subtask under the same task` : `New task`}
