@@ -39,6 +39,10 @@ export interface ListScreenProps {
   onCompletedRangeChange: (range: CompletedRange) => void
   onComplete: (task: Task, done: boolean) => void
   onOpen: (task: Task) => void
+  /** Renames a task from its row; given, pressing a title renames it and "Edit" opens it. */
+  onRenameTask?: (task: Task, title: string) => void
+  /** Adds a task beside one (under the same parent), from the line Enter opens while renaming. */
+  onAddSibling?: (task: Task, title: string) => void
   /** Creates a task in this list. The phone's way to add; a desktop has the sidebar's form. */
   onQuickAdd: (parsed: QuickAddResult) => void
   quickAddBusy?: boolean
@@ -302,6 +306,8 @@ export function ListScreen(props: ListScreenProps): JSX.Element {
                         now={props.now}
                         onComplete={props.onComplete}
                         onOpen={props.onOpen}
+                        onRename={props.onRenameTask}
+                        onAddSibling={props.onAddSibling}
                         onReorder={props.sort === SortMode.Manual ? props.onReorder : undefined}
                       />
                     </FocusKeeper>
@@ -338,6 +344,8 @@ export function ListScreen(props: ListScreenProps): JSX.Element {
                       now={props.now}
                       onComplete={props.onComplete}
                       onOpen={props.onOpen}
+                      onRename={props.onRenameTask}
+                      onAddSibling={props.onAddSibling}
                     />
                   </FocusKeeper>
                 )}

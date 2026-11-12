@@ -27,6 +27,10 @@ export interface TaskTreeProps {
   onReorder?: (task: Task, siblings: readonly Task[], toIndex: number) => void
   /** Quiet rows with no lines between them, as in the Completed section. */
   plain?: boolean
+  /** Renames a task in place; see TaskRow's `onRename`. */
+  onRename?: (task: Task, title: string) => void
+  /** Adds a task beside one, from the line Enter opens while renaming. */
+  onAddSibling?: (task: Task, title: string) => void
 }
 
 /** Wraps tasks as a tree with no subtasks, for a view that lists tasks flat. */
@@ -107,6 +111,8 @@ export function TaskTree(props: TaskTreeProps): JSX.Element {
           onComplete={props.onComplete}
           onOpen={props.onOpen}
           plain={props.plain}
+          onRename={props.onRename}
+          onAddSibling={props.onAddSibling}
         />
       ))}
     </ul>
@@ -155,6 +161,8 @@ function SortableGroup(props: SortableGroupProps): JSX.Element {
               onExpandedChange={props.setExpanded}
               onComplete={tree.onComplete}
               onOpen={tree.onOpen}
+              onRename={tree.onRename}
+              onAddSibling={tree.onAddSibling}
             />
             {open && node.children.length > 0 && (
               <SortableGroup {...props} nodes={node.children} depth={(props.depth ?? 0) + 1} />

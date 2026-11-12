@@ -1,4 +1,5 @@
 import type { JSX } from "preact"
+import { useEffect, useRef, useState } from "preact/hooks"
 import { IconArrowPath, IconBell, IconChevronDown, IconFlag } from "@spy4x/preact-icons"
 import { Checkbox } from "@spy4x/preact-ui/checkbox"
 import { dueLabel, DueTone } from "./due-label.ts"
@@ -39,6 +40,16 @@ export interface TaskRowProps {
   bare?: boolean
   /** A quiet row with no line above it and no "No date", as in the Completed section. */
   plain?: boolean
+  /**
+   * Given, pressing the title renames the task in place (Enter or leaving the field saves, Escape
+   * cancels) and an "Edit" button, shown on hover, opens it with `onOpen`.
+   */
+  onRename?: (task: Task, title: string) => void
+  /**
+   * Given, Enter while renaming opens a new line under the row: a title typed there and Enter
+   * creates a task beside this one (a subtask of the same parent), and opens the next line.
+   */
+  onAddSibling?: (task: Task, title: string) => void
 }
 
 const INDENT = [`ps-2`, `ps-12`, `ps-16`, `ps-16`] as const
@@ -78,10 +89,39 @@ export function TaskRow(props: TaskRowProps): JSX.Element {
   const expandable = subtaskCount > 0
   const sub = depth > 0
   const quiet = sub || props.plain
+  const [renaming, setRenaming] = useState(false)
+  const [adding, setAdding] = useState(false)
+  const newLine = useRef<HTMLInputElement>(null)
+  useEffect(() => {
+    if (adding) newLine.current?.focus()
+  }, [adding])
+  const field = useRef<HTMLInputElement>(null)
+  const finished = useRef(false)
+  useEffect(() => {
+    if (!renaming) return
+    finished.current = false
+    field.current?.focus()
+    field.current?.select()
+  }, [renaming])
+  const finishRename = (value: string | null, next = false) => {
+    if (finished.current) return
+    finished.current = true
+    setRenaming(false)
+    const title = value?.trim()
+    if (title && title !== task.title) props.onRename?.(task, title)
+    if (next && props.onAddSibling) setAdding(true)
+  }
+  /** Creates the task typed on the new line; `keepOpen` leaves an empty line for the next one. */
+  const addFromNewLine = (input: HTMLInputElement, keepOpen: boolean) => {
+    const title = input.value.trim()
+    if (title) props.onAddSibling?.(task, title)
+    input.value = ``
+    if (!title || !keepOpen) setAdding(false)
+  }
 
   const setExpanded = (next: boolean) => props.onExpandedChange?.(task, next)
   const onKeyDown = (event: JSX.TargetedKeyboardEvent<HTMLLIElement>) => {
-    if (!expandable || event.altKey || event.ctrlKey || event.metaKey) return
+    if (!expandable || event.altKey || event.ctrlKey || event.metaKey || renaming) return
     if (event.key === `ArrowRight` && !expanded) {
       event.preventDefault()
       setExpanded(true)
@@ -94,7 +134,9 @@ export function TaskRow(props: TaskRowProps): JSX.Element {
   const Tag = (props.bare ? `div` : `li`) as `li`
   return (
     <Tag
-      class={`isolate relative flex items-center gap-2 pe-4 ${INDENT[Math.min(depth, 3)]} ${
+      class={`isolate relative flex flex-wrap items-center gap-x-2 pe-4 ${
+        INDENT[Math.min(depth, 3)]
+      } ${
         sub
           ? `min-h-11`
           : props.plain
@@ -116,16 +158,42 @@ export function TaskRow(props: TaskRowProps): JSX.Element {
           props.onComplete(task, (event.currentTarget as HTMLInputElement).checked)}
       />
       <div class="min-w-0 flex-1 py-2">
-        <button
-          type="button"
-          class={`block w-full cursor-pointer text-left after:absolute after:inset-0 after:content-[''] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-ring)] ${
-            quiet ? `text-[15px]` : `text-base`
-          }`}
-          onClick={() => props.onOpen(task)}
-          data-e2e="task-open"
-        >
-          <span class={`break-words ${open ? `` : `text-muted line-through`}`}>{task.title}</span>
-        </button>
+        {renaming
+          ? (
+            <input
+              ref={field}
+              class={`-ms-2 w-full rounded-md border border-accent bg-surface px-2 outline-none ${
+                quiet ? `text-[15px]` : `text-base`
+              }`}
+              defaultValue={task.title}
+              aria-label={`Rename ${task.title}`}
+              onKeyDown={(event) => {
+                if (event.key === `Enter`) {
+                  event.preventDefault()
+                  finishRename(event.currentTarget.value, true)
+                } else if (event.key === `Escape`) {
+                  event.preventDefault()
+                  finishRename(null)
+                }
+              }}
+              onBlur={(event) => finishRename(event.currentTarget.value)}
+              data-e2e="task-rename"
+            />
+          )
+          : (
+            <button
+              type="button"
+              class={`block w-full cursor-pointer text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-ring)] ${
+                props.onRename ? `cursor-text` : `after:absolute after:inset-0 after:content-['']`
+              } ${quiet ? `text-[15px]` : `text-base`}`}
+              onClick={() => props.onRename ? setRenaming(true) : props.onOpen(task)}
+              data-e2e="task-open"
+            >
+              <span class={`break-words ${open ? `` : `text-muted line-through`}`}>
+                {task.title}
+              </span>
+            </button>
+          )}
       </div>
       <div class="flex shrink-0 flex-wrap items-center justify-end gap-x-4 gap-y-1 text-[13px] text-muted">
         {expandable && (
@@ -187,6 +255,17 @@ export function TaskRow(props: TaskRowProps): JSX.Element {
             <span class="sr-only">Has a reminder</span>
           </span>
         )}
+        {props.onRename && (
+          <button
+            type="button"
+            class="row-edit relative z-10 inline-flex h-7 cursor-pointer items-center rounded-md px-2 text-[13px] text-muted hover:bg-hover hover:text-foreground focus-visible:outline-2 focus-visible:outline-[var(--color-ring)]"
+            aria-label={`Edit ${task.title}`}
+            onClick={() => props.onOpen(task)}
+            data-e2e="task-edit"
+          >
+            Edit
+          </button>
+        )}
         {(due || !quiet) && (
           <span
             class={`min-w-20 text-right ${due ? TONE_CLASS[due.tone] : `text-muted`}`}
@@ -196,6 +275,30 @@ export function TaskRow(props: TaskRowProps): JSX.Element {
           </span>
         )}
       </div>
+      {adding && (
+        <div class="relative z-10 basis-full ps-12 pb-3">
+          <input
+            ref={newLine}
+            class={`w-full rounded-md border border-accent bg-surface px-2 outline-none ${
+              quiet ? `text-[15px]` : `text-base`
+            }`}
+            placeholder={sub ? `New subtask` : `New task`}
+            aria-label={sub ? `New subtask under the same task` : `New task`}
+            onKeyDown={(event) => {
+              if (event.key === `Enter`) {
+                event.preventDefault()
+                addFromNewLine(event.currentTarget, true)
+              } else if (event.key === `Escape`) {
+                event.preventDefault()
+                event.currentTarget.value = ``
+                setAdding(false)
+              }
+            }}
+            onBlur={(event) => addFromNewLine(event.currentTarget, false)}
+            data-e2e="task-new-line"
+          />
+        </div>
+      )}
     </Tag>
   )
 }

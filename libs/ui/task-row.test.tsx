@@ -207,3 +207,44 @@ Deno.test("a row without subtasks has no expander and ignores the arrow keys", a
     },
   )
 })
+
+Deno.test("with onRename, the title renames in place, Enter saves and opens a new line that adds a task beside it", async () => {
+  const renamed: string[] = []
+  const added: string[] = []
+  const opened: string[] = []
+  await mount(
+    <ul>
+      <TaskRow
+        task={makeTask(`1`, `Buy milk`)}
+        zone="UTC"
+        now={NOW}
+        onComplete={() => {}}
+        onOpen={(task) => opened.push(task.title)}
+        onRename={(_task, title) => renamed.push(title)}
+        onAddSibling={(_task, title) => added.push(title)}
+      />
+    </ul>,
+    async ({ root, window, act }) => {
+      await act(() => must<HTMLButtonElement>(root, `[data-e2e="task-open"]`).click())
+      expect(opened).toEqual([])
+      const field = must<HTMLInputElement>(root, `[data-e2e="task-rename"]`)
+      const key = (target: HTMLElement, k: string) =>
+        act(() => {
+          target.dispatchEvent(
+            new window.KeyboardEvent(`keydown`, { key: k, bubbles: true }) as never,
+          )
+        })
+      field.value = `Buy oat milk`
+      await key(field, `Enter`)
+      expect(renamed).toEqual([`Buy oat milk`])
+      const line = must<HTMLInputElement>(root, `[data-e2e="task-new-line"]`)
+      line.value = `Buy bread`
+      await key(line, `Enter`)
+      expect(added).toEqual([`Buy bread`])
+      await key(must<HTMLInputElement>(root, `[data-e2e="task-new-line"]`), `Enter`)
+      expect(root.querySelector(`[data-e2e="task-new-line"]`)).toBeNull()
+      await act(() => must<HTMLButtonElement>(root, `[data-e2e="task-edit"]`).click())
+      expect(opened).toEqual([`Buy milk`])
+    },
+  )
+})

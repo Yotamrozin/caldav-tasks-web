@@ -13,7 +13,7 @@ import { findListBySlug, listSettingsPath, taskPath } from "../routes.ts"
 import { browserZone } from "./clock.ts"
 import { sortFromParam, sortToParam, tagsFromParam, tagsToParam } from "./list-filters.ts"
 import { NotFoundView } from "./NotFoundView.tsx"
-import { completeWithUndo, reorderInList } from "./task-actions.ts"
+import { addSiblingTask, completeWithUndo, renameTask, reorderInList } from "./task-actions.ts"
 import { useQuickAdd } from "./use-quick-add.ts"
 
 /**
@@ -60,6 +60,8 @@ export function ListView() {
         doneParam.value = range === CompletedRange.Week ? `` : range}
       onComplete={(task, done) => void completeWithUndo(task, done)}
       onOpen={(task) => navigate(taskPath(task))}
+      onRenameTask={(task, title) => void renameTask(task, title)}
+      onAddSibling={(task, title) => void addSiblingTask(task, title)}
       onReorder={(task, siblings, to) =>
         void reorderInList(list.href, task, siblings, to, browserZone())}
       onQuickAdd={(parsed) => void quickAdd.add(parsed)}

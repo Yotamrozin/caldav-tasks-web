@@ -3,12 +3,18 @@ import { useEffect, useMemo, useRef, useState } from "preact/hooks"
 import { hhmmInTz, isoDateInTz, resolveWallClock } from "@spy4x/time/tz"
 import { Button } from "@spy4x/preact-ui/button"
 import { ConfirmDialog } from "@spy4x/preact-ui/confirm-dialog"
-import { DropdownItem } from "@spy4x/preact-ui/dropdown"
 import { EnhancedForm } from "@spy4x/preact-ui/enhanced-form"
 import { Field } from "@spy4x/preact-ui/field"
-import { Input, Select, Textarea } from "@spy4x/preact-ui/input"
+import { Input } from "@spy4x/preact-ui/input"
+import {
+  IconCalendar,
+  IconChevronDown,
+  IconChevronLeft,
+  IconChevronRight,
+  IconFlag,
+  IconTrashBin,
+} from "@spy4x/preact-icons"
 import { Link } from "@spy4x/preact-ui/link"
-import { PageHeader } from "@spy4x/preact-ui/page-header"
 import { RadioGroup } from "@spy4x/preact-ui/radio"
 import { TagInput } from "@spy4x/preact-ui/tag-input"
 import { type LeaveGuard, UnsavedGuard } from "@spy4x/preact-ui/unsaved-guard"
@@ -157,6 +163,19 @@ const PRIORITY_NUMBER: Record<PriorityBand, number> = {
   [PriorityBand.High]: 1,
 }
 
+/** The flag's colour for each band, as the list rows draw it. */
+const PRIORITY_TONE: Record<PriorityBand, string> = {
+  [PriorityBand.None]: "text-muted",
+  [PriorityBand.Low]: "text-info",
+  [PriorityBand.Medium]: "text-warning",
+  [PriorityBand.High]: "text-danger",
+}
+
+/** The editor's large controls and their labels. */
+const BIG =
+  "rounded-xl border border-subtle bg-surface text-lg text-foreground placeholder:text-placeholder focus-visible:border-accent focus-visible:outline-2 focus-visible:outline-[var(--color-ring)]"
+const LABEL = "text-lg"
+
 const PRIORITY_OPTIONS = [
   { value: String(PriorityBand.None), label: "None" },
   { value: String(PriorityBand.Low), label: "Low" },
@@ -272,7 +291,7 @@ function check(fields: Fields, baseline: Fields): TaskEditorErrors {
  * {@link ConflictDialog}.
  */
 export function TaskEditorScreen(props: TaskEditorScreenProps): JSX.Element {
-  const { task, lists, navigate, saving = false } = props
+  const { task, navigate, saving = false } = props
   const backHref = props.backHref ?? "/"
   const zone = props.timeZone ?? `UTC`
   // The version the form started from. It trails `task` while the form holds something typed that
@@ -343,169 +362,292 @@ export function TaskEditorScreen(props: TaskEditorScreenProps): JSX.Element {
     props.onSave(draft(), base)
   }
 
-  const listName = lists.find((list) => list.href === task.listHref)?.name
+  /** Back saves what changed and goes back; with nothing changed it just goes back. */
+  const back = () => {
+    if (dirty) save()
+    else navigate(backHref)
+  }
+
+  const band = bandOf(fields.priority)
+  const shownDue = fields.dueDate
+    ? new Date(`${fields.dueDate}T12:00:00Z`).toLocaleDateString(undefined, {
+      weekday: `long`,
+      month: `long`,
+      day: `numeric`,
+      timeZone: `UTC`,
+    })
+    : ``
 
   return (
-    <div class="mx-auto w-full max-w-2xl space-y-6">
+    <div class="flex w-full max-w-6xl flex-col gap-6 px-4 py-6 md:px-12 md:pt-12 md:pb-16">
       <UnsavedGuard
-        when={dirty}
+        when={dirty && !saving}
         navigate={navigate}
         owns={props.owns ?? (() => true)}
         leaveGuard={props.leaveGuard}
       />
-      <PageHeader
-        title="Edit task"
-        subtitle={listName}
-        back={{ href: backHref, label: "Back" }}
-        navigate={navigate}
-        menu={props.onDelete && (
-          <DropdownItem
-            danger
-            disabled={props.deleting}
-            onClick={() => {
-              setAsking(true)
-              props.onDeleteAsked?.()
-            }}
-            dataE2E="task-delete"
+      <div class="flex items-center justify-between gap-4">
+        <button
+          type="button"
+          class="-ms-1 inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-md px-1 text-[15px] text-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-[var(--color-ring)]"
+          onClick={back}
+          disabled={saving}
+          data-e2e="task-back"
+        >
+          <IconChevronLeft class="size-4" aria-hidden="true" />
+          Back
+        </button>
+        <div class="flex items-center gap-2">
+          {props.onDelete && (
+            <button
+              type="button"
+              class="inline-flex h-9 cursor-pointer items-center gap-2 rounded-lg border border-subtle bg-surface px-3 text-sm text-danger hover:border-control disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-[var(--color-ring)]"
+              disabled={props.deleting}
+              onClick={() => {
+                setAsking(true)
+                props.onDeleteAsked?.()
+              }}
+              data-e2e="task-delete"
+            >
+              <IconTrashBin class="size-4" aria-hidden="true" />
+              Delete
+            </button>
+          )}
+          <button
+            type="button"
+            class="inline-flex h-9 cursor-pointer items-center rounded-lg bg-accent px-4 text-sm font-medium text-accent-foreground hover:opacity-90 disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-ring)]"
+            disabled={saving}
+            onClick={save}
+            data-e2e="task-save-top"
           >
-            Delete task
-          </DropdownItem>
-        )}
-        menuDataE2E="task-menu"
-      />
+            Save
+          </button>
+        </div>
+      </div>
       <EnhancedForm
         status={saving ? "sending" : "idle"}
         labels={{ sending: "", done: "", failed: "" }}
         onSubmit={save}
         class="space-y-0!"
       >
-        <div class="space-y-4" ref={form} data-e2e="task-form">
-          <Field id="task-title" label="Title" error={errors.title} required>
-            {(wiring) => (
-              <Input
-                id={wiring.id}
-                name="title"
-                autocomplete="off"
-                aria-required="true"
-                aria-invalid={errors.title ? true : undefined}
-                aria-describedby={wiring["aria-describedby"]}
-                value={fields.title}
-                onInput={(event) => set({ title: event.currentTarget.value })}
-                data-e2e="task-title"
-              />
-            )}
-          </Field>
-          <Field id="task-notes" label="Notes">
-            <Textarea
+        <div class="flex flex-col gap-8" ref={form} data-e2e="task-form">
+          <div class="flex flex-col gap-3">
+            <h1 class="w-fit rounded-md bg-chip px-3 py-1 text-lg font-normal">Edit task</h1>
+            <input
+              id="task-title"
+              name="title"
+              autocomplete="off"
+              aria-label="Title"
+              aria-required="true"
+              aria-invalid={errors.title ? true : undefined}
+              aria-describedby={errors.title ? "task-title-error" : undefined}
+              class={`${BIG} h-14 w-full px-4 text-[22px]`}
+              value={fields.title}
+              onInput={(event) => set({ title: event.currentTarget.value })}
+              data-e2e="task-title"
+            />
+            {errors.title && <p id="task-title-error" class="text-sm text-danger">{errors.title}
+            </p>}
+          </div>
+
+          <div class="flex flex-wrap items-start gap-x-12 gap-y-6">
+            <div class="flex min-w-0 max-w-xl flex-1 basis-80 flex-col gap-3">
+              <label for="task-due-date" class={LABEL}>Due date</label>
+              <div class="flex gap-3">
+                <span
+                  class={`${BIG} relative flex h-13 min-w-0 flex-1 items-center gap-3 px-4 focus-within:border-accent focus-within:outline-2 focus-within:outline-[var(--color-ring)]`}
+                >
+                  <IconCalendar class="size-5 shrink-0 text-muted" aria-hidden="true" />
+                  <span class={`min-w-0 flex-1 truncate ${shownDue ? `` : `text-muted`}`}>
+                    {shownDue || `Choose a date`}
+                  </span>
+                  <IconChevronDown class="size-4 shrink-0 text-muted" aria-hidden="true" />
+                  <input
+                    id="task-due-date"
+                    name="task-due-date"
+                    type="date"
+                    class="absolute inset-0 cursor-pointer opacity-0"
+                    aria-invalid={errors.due ? true : undefined}
+                    aria-describedby={errors.due ? "task-due-error" : undefined}
+                    value={fields.dueDate}
+                    onClick={(event) => {
+                      try {
+                        event.currentTarget.showPicker?.()
+                      } catch { /* a browser that will not open it here still takes typing */ }
+                    }}
+                    onInput={(event) => {
+                      // A cleared date takes its time with it: the time box hides with the date.
+                      const dueDate = event.currentTarget.value
+                      set(dueDate ? { dueDate } : { dueDate, dueTime: "" })
+                    }}
+                    data-e2e="task-due-date"
+                  />
+                </span>
+                {fields.dueDate && (
+                  <input
+                    name="task-due-time"
+                    type="time"
+                    aria-label="Due time (optional)"
+                    class={`${BIG} h-13 w-36 px-3`}
+                    value={fields.dueTime}
+                    onInput={(event) => set({ dueTime: event.currentTarget.value })}
+                    data-e2e="task-due-time"
+                  />
+                )}
+              </div>
+              {errors.due && <p id="task-due-error" class="text-sm text-danger">{errors.due}</p>}
+            </div>
+            <div class="flex flex-col gap-3">
+              <label for="task-priority" class={LABEL}>Priority</label>
+              <span class="relative block">
+                <IconFlag
+                  class={`pointer-events-none absolute inset-y-0 start-4 my-auto size-5 ${
+                    PRIORITY_TONE[band]
+                  }`}
+                  aria-hidden="true"
+                />
+                <select
+                  id="task-priority"
+                  name="priority"
+                  class={`${BIG} h-13 w-full min-w-44 cursor-pointer appearance-none ps-12 pe-12`}
+                  value={String(band)}
+                  // Only a change of band reaches here, so an untouched priority (a 3) is kept.
+                  onChange={(event) =>
+                    set({
+                      priority: PRIORITY_NUMBER[Number(event.currentTarget.value) as PriorityBand],
+                    })}
+                  data-e2e="task-priority"
+                >
+                  {PRIORITY_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
+                </select>
+                <IconChevronDown
+                  class="pointer-events-none absolute inset-y-0 end-4 my-auto size-4 text-muted"
+                  aria-hidden="true"
+                />
+              </span>
+            </div>
+          </div>
+
+          <div class="flex flex-col gap-3">
+            <label for="task-notes" class={LABEL}>Notes</label>
+            <textarea
+              id="task-notes"
               name="notes"
-              rows={5}
+              rows={3}
+              placeholder="Add details"
+              class={`${BIG} block w-full resize-y px-4 py-3 text-base`}
               value={fields.notes}
               onInput={(event) => set({ notes: event.currentTarget.value })}
               data-e2e="task-notes"
             />
-          </Field>
-          <DateRow
-            id="task-due"
-            label="Due"
-            error={errors.due}
-            date={fields.dueDate}
-            time={fields.dueTime}
-            onDate={(dueDate) => set({ dueDate })}
-            onTime={(dueTime) => set({ dueTime })}
-          />
-          <DateRow
-            id="task-start"
-            label="Start"
-            error={errors.start}
-            date={fields.startDate}
-            time={fields.startTime}
-            onDate={(startDate) => set({ startDate })}
-            onTime={(startTime) => set({ startTime })}
-          />
-          <RadioGroup
-            id="task-priority"
-            legend="Priority"
-            name="priority"
-            class="flex flex-wrap gap-4"
-            options={PRIORITY_OPTIONS}
-            value={String(bandOf(fields.priority))}
-            // Only a change of band reaches here, so an untouched priority (a 3, say) is kept as is.
-            onChange={(value) => set({ priority: PRIORITY_NUMBER[Number(value) as PriorityBand] })}
-          />
-          <Field id="task-list" label="List">
-            <Select
-              name="list"
-              options={lists.map((list) => ({ value: list.href, label: list.name }))}
-              value={fields.listHref}
-              onChange={(event) => set({ listHref: event.currentTarget.value })}
-              data-e2e="task-list"
-            />
-          </Field>
-          <Field id="task-tags" label="Tags">
-            <TagInput
-              id="task-tags"
-              value={fields.tags}
-              onChange={(tags) => set({ tags })}
-              suggestions={props.tagSuggestions}
-            />
-          </Field>
-          <RepeatField
-            id="task-repeat"
-            value={fields.repeatRule}
-            onChange={(repeatRule) => set({ repeatRule })}
-            error={errors.repeat}
-            disabled={saving}
-            anchor={repeatAnchor(
-              fields.dueDate ? fields.dueTime : fields.startTime,
-              fields.dueDate ? base.due : base.start,
-              zone,
-            )}
-          />
-          {fields.repeatRule && (
-            <RadioGroup
-              id="task-repeat-from"
-              legend="Count the next date"
-              name="repeat-from"
-              class="flex flex-wrap gap-4"
-              options={REPEAT_FROM_OPTIONS}
-              value={String(fields.repeatFrom)}
-              onChange={(value) => set({ repeatFrom: Number(value) as RepeatFrom })}
-              data-e2e="task-repeat-from"
-            />
-          )}
-          <RemindersField
-            id="task-reminders"
-            value={fields.reminders}
-            onChange={(reminders) => set({ reminders })}
-            hasDue={fields.dueDate !== ""}
-            hasStart={fields.startDate !== ""}
-            timeZone={zone}
-            disabled={saving}
-          />
+          </div>
+
+          <div class="flex flex-col gap-6 border-y border-subtle py-6">
+            <details class="group/reminders" open={fields.reminders.length > 0 || undefined}>
+              <summary class="flex min-h-11 cursor-pointer list-none items-center gap-4 text-lg">
+                <span
+                  class="size-6 shrink-0 rounded-full border-2 border-control group-open/reminders:border-accent"
+                  aria-hidden="true"
+                />
+                Add a reminder <span class="text-muted">(optional)</span>
+              </summary>
+              <div class="pt-4">
+                <RemindersField
+                  id="task-reminders"
+                  value={fields.reminders}
+                  onChange={(reminders) => set({ reminders })}
+                  hasDue={fields.dueDate !== ""}
+                  hasStart={fields.startDate !== ""}
+                  timeZone={zone}
+                  disabled={saving}
+                />
+              </div>
+            </details>
+            <details
+              class="group"
+              open={Boolean(fields.startDate || fields.tags.length || fields.repeatRule) ||
+                undefined}
+            >
+              <summary class="flex min-h-11 cursor-pointer list-none items-center gap-2 text-base text-muted hover:text-foreground">
+                <IconChevronRight
+                  class="size-4 transition-transform group-open:rotate-90"
+                  aria-hidden="true"
+                />
+                More options
+                <span class="text-sm">(start date, tags, repeat)</span>
+              </summary>
+              <div class="flex flex-col gap-4 pt-4">
+                <DateRow
+                  id="task-start"
+                  label="Start"
+                  error={errors.start}
+                  date={fields.startDate}
+                  time={fields.startTime}
+                  onDate={(startDate) => set({ startDate })}
+                  onTime={(startTime) => set({ startTime })}
+                />
+                <Field id="task-tags" label="Tags">
+                  <TagInput
+                    id="task-tags"
+                    value={fields.tags}
+                    onChange={(tags) => set({ tags })}
+                    suggestions={props.tagSuggestions}
+                  />
+                </Field>
+                <RepeatField
+                  id="task-repeat"
+                  value={fields.repeatRule}
+                  onChange={(repeatRule) => set({ repeatRule })}
+                  error={errors.repeat}
+                  disabled={saving}
+                  anchor={repeatAnchor(
+                    fields.dueDate ? fields.dueTime : fields.startTime,
+                    fields.dueDate ? base.due : base.start,
+                    zone,
+                  )}
+                />
+                {fields.repeatRule && (
+                  <RadioGroup
+                    id="task-repeat-from"
+                    legend="Count the next date"
+                    name="repeat-from"
+                    class="flex flex-wrap gap-4"
+                    options={REPEAT_FROM_OPTIONS}
+                    value={String(fields.repeatFrom)}
+                    onChange={(value) => set({ repeatFrom: Number(value) as RepeatFrom })}
+                    data-e2e="task-repeat-from"
+                  />
+                )}
+              </div>
+            </details>
+          </div>
+
           {errors.form && (
             <p role="alert" class="text-sm text-danger" data-e2e="task-form-error">
               {errors.form}
             </p>
           )}
-          <div class="sticky bottom-0 flex gap-3 border-t border-subtle bg-canvas py-3 sm:static sm:justify-end sm:border-0 sm:bg-transparent sm:py-0">
+          <div class="sticky bottom-16 flex gap-4 bg-canvas py-3 sm:static sm:justify-end sm:bg-transparent sm:py-0">
             <Button
               href={backHref}
               navigate={navigate}
               variant="outline"
-              class="flex-1 sm:flex-none"
+              class="h-12 flex-1 rounded-xl px-6 text-lg font-normal sm:flex-none"
               data-e2e="task-cancel"
             >
               Cancel
             </Button>
-            <Button
+            <button
               type="submit"
-              busy={saving}
-              busyLabel="Saving…"
-              class="flex-1 sm:flex-none"
+              disabled={saving}
+              aria-busy={saving ? "true" : undefined}
+              class="h-12 flex-1 cursor-pointer rounded-xl bg-accent px-6 text-lg font-medium text-accent-foreground hover:opacity-90 disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-ring)] sm:flex-none"
               data-e2e="task-save"
             >
-              Save
-            </Button>
+              {saving ? `Saving…` : `Save changes`}
+            </button>
           </div>
         </div>
       </EnhancedForm>
