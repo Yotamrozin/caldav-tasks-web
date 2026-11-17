@@ -11,7 +11,7 @@ import { addTask } from "../state/task-writes.ts"
 import { tasks, WriteKind } from "../state/tasks.ts"
 import { toasts } from "../state/toasts.ts"
 import { browserZone } from "./clock.ts"
-import { homeList } from "../state/home-list.ts"
+import { homeHref, homeList } from "../state/home-list.ts"
 import { namedParent, newTaskFromQuickAdd } from "./use-quick-add.ts"
 
 /**
@@ -55,6 +55,7 @@ export function SidebarView(
       href: listPath(list),
       color: list.color,
       count: list.openCount,
+      home: list.href === homeHref.value,
     })),
   ]
 
