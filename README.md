@@ -3,6 +3,35 @@
 [![CI](https://ci.antonshubin.com/api/badges/14/status.svg)](https://ci.antonshubin.com/repos/spy4x/caldav-tasks-web)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
+> **About this fork.** This is [spy4x/caldav-tasks-web](https://github.com/spy4x/caldav-tasks-web)
+> with a reworked desktop layout. Everything after this note describes the original and applies here
+> too, with one difference: the published image (`antonshubin/caldav-tasks-web`) is the original, so
+> to run this version, clone this repository and build the image yourself:
+> `docker build -t caldav-tasks-web .`, then use `caldav-tasks-web` as the image name in
+> [Run it](#run-it).
+
+![Two lists side by side, Daily and Work, with the sidebar hidden and one New task field at the top](media/fork/sidebar-hidden.png)
+
+What this fork adds:
+
+- **Two lists side by side.** Pick the second list from its heading and drag the divider to make
+  one wider. In a narrow list, dates and tags move under the title so the task names keep the room.
+- **A sidebar with a New task form and your lists**, which you can hide. Hidden, one New task field
+  sits at the top of the page and adds to the list on screen.
+- **Nesting as you type.** Write `Milk / Groceries` to add Milk under Groceries. The field suggests
+  your open main tasks, or creates the main task when it is new.
+- **A default list.** Settings chooses which list the app opens on, on each device.
+- **Smaller touches:** rename tasks in place, Delete with Undo on every row, drag a task onto another
+  to nest it, quieter notifications, and Inter and General Sans for text and headings.
+
+| The sidebar open                                                                  | Nesting as you type                                                                                          |
+| --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| ![The sidebar with the New task form, beside two lists](media/fork/two-lists.png) | ![Typing "Draft the agenda / Fin" suggests the main task "Finish the project proposal"](media/fork/nest.png) |
+
+The screenshots show made-up tasks.
+
+---
+
 **A web companion to [Tasks.org](https://tasks.org/) for your own CalDAV server.** Open your task
 lists in a browser (tested in Chromium), on the same server your phone syncs with. One install serves one person.
 
