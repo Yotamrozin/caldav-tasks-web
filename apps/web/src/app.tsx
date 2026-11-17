@@ -134,7 +134,8 @@ function SignedInApp() {
         }
       }}
       sidebar={<SidebarView currentPath={location} navigate={guarded} />}
-      newTask={/^\/lists\/[^/]+$/.test(location)
+      newTask={/^\/lists\/[^/]+$/.test(location) || location === ROUTES.today ||
+          location === ROUTES.upcoming
         ? <SidebarView compact currentPath={location} navigate={guarded} />
         : undefined}
     >
