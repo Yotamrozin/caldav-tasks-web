@@ -71,6 +71,13 @@ export interface ListScreenProps {
    */
   hideCompleted?: boolean
   onHideCompletedChange?: (hide: boolean) => void
+  /**
+   * A simple list: items with no checks, all of them in the one tree (one finished elsewhere, as
+   * on a phone, stays), no Completed section and a count of items. With `onSimpleChange`, "More
+   * actions" has a tick item that turns it.
+   */
+  simple?: boolean
+  onSimpleChange?: (simple: boolean) => void
   /** The default list, the one the app opens on: a home icon beside the name says so. */
   isHome?: boolean
   /** Makes this the default list; offered in "More actions" while it is not. */
@@ -190,7 +197,9 @@ export function ListScreen(props: ListScreenProps): JSX.Element {
   const openUids = new Set(tasks.filter(isOpen).map((task) => task.uid))
   // A finished subtask of an open task belongs with its parent, not in Completed.
   const inTree = (task: Task) =>
-    isOpen(task) || (task.parentUid !== undefined && openUids.has(task.parentUid))
+    props.simple || isOpen(task) ||
+    (task.parentUid !== undefined && openUids.has(task.parentUid))
+  const hideDone = props.hideCompleted && !props.simple
   const tagged = (task: Task) =>
     props.activeTags.length === 0 || task.tags.some((tag) => props.activeTags.includes(tag))
   const finished = tasks
@@ -207,7 +216,7 @@ export function ListScreen(props: ListScreenProps): JSX.Element {
   const openShown = nodes.filter((node) => isOpen(node.task)).length
   const canMakeHome = props.onMakeHome && !props.isHome
   const hasMenu = props.onRename || props.onChangeColor || props.onDelete || canMakeHome ||
-    props.onHideCompletedChange
+    props.onHideCompletedChange || props.onSimpleChange
   // Two lists can share the page, so their headings' ids carry the list.
   const id = list.href.replace(/[^\w-]/g, `_`)
   const today = props.now.toLocaleDateString(undefined, {
@@ -251,7 +260,9 @@ export function ListScreen(props: ListScreenProps): JSX.Element {
               </span>
             )}
             <span class="shrink-0 whitespace-nowrap text-[13px] font-normal tracking-normal text-muted">
-              {openShown} open
+              {props.simple
+                ? `${nodes.length} ${nodes.length === 1 ? `item` : `items`}`
+                : `${openShown} open`}
             </span>
           </h1>
           <div class="ms-auto flex flex-wrap items-center gap-2">
@@ -293,7 +304,16 @@ export function ListScreen(props: ListScreenProps): JSX.Element {
                 {canMakeHome && (
                   <DropdownItem onClick={props.onMakeHome}>Make default list</DropdownItem>
                 )}
-                {props.onHideCompletedChange && (
+                {props.onSimpleChange && (
+                  <DropdownItem
+                    checked={props.simple === true}
+                    onClick={() => props.onSimpleChange!(!props.simple)}
+                    dataE2E="simple-list"
+                  >
+                    Simple list (no checkboxes)
+                  </DropdownItem>
+                )}
+                {props.onHideCompletedChange && !props.simple && (
                   <DropdownItem
                     checked={props.hideCompleted === true}
                     onClick={() => props.onHideCompletedChange!(!props.hideCompleted)}
@@ -359,7 +379,8 @@ export function ListScreen(props: ListScreenProps): JSX.Element {
                         nodes={nodes}
                         zone={zone}
                         now={props.now}
-                        hideDone={props.hideCompleted}
+                        hideDone={hideDone}
+                        noChecks={props.simple}
                         onComplete={props.onComplete}
                         onOpen={props.onOpen}
                         onRename={props.onRenameTask}
@@ -373,7 +394,7 @@ export function ListScreen(props: ListScreenProps): JSX.Element {
                 )}
             </section>
 
-            {!props.hideCompleted && (
+            {!props.hideCompleted && !props.simple && (
               <section
                 class="flex flex-col gap-2 pt-4"
                 aria-labelledby={`completed-${id}`}
