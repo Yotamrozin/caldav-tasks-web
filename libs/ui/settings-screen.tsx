@@ -48,6 +48,9 @@ export interface SettingsScreenProps {
   shortcutsEnabled: boolean
   /** The "Keyboard shortcuts" switch was turned; `on` is what it was turned to. */
   onToggleShortcuts: (on: boolean) => void
+  /** Whether a list's heading shows "4 open", and its switch; left out, there is no switch. */
+  showOpenCounts?: boolean
+  onToggleOpenCounts?: (on: boolean) => void
   /** Opens the list of keyboard shortcuts. */
   onShowShortcuts: () => void
   /** "Sign out" was pressed. */
@@ -144,6 +147,16 @@ export function SettingsScreen(props: SettingsScreenProps): JSX.Element {
               />
             </div>
           </Row>
+          {props.onToggleOpenCounts && (
+            <Row term="Open-task count on lists" termId={COUNTS_TERM} e2e="settings-counts">
+              <ToggleSwitch
+                id="settings-counts-switch"
+                value={props.showOpenCounts === true}
+                onToggle={props.onToggleOpenCounts}
+                aria-labelledby={COUNTS_TERM}
+              />
+            </Row>
+          )}
           <Row term="Time zone" e2e="settings-zone">{props.timeZone}</Row>
           <Row term="Version" e2e="settings-version">{props.version}</Row>
         </dl>
@@ -202,6 +215,9 @@ const HOME_TERM = `settings-home-term`
 
 /** The id of the "Keyboard shortcuts" term, which names its switch. */
 const SHORTCUTS_TERM = `settings-shortcuts-term`
+
+/** The id of the open-count term, which names its switch. */
+const COUNTS_TERM = `settings-counts-term`
 
 function Row(
   { term, termId, e2e, children }: {
