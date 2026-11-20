@@ -30,7 +30,7 @@
   --color-mist: #1c6aa0; /* info */
   --color-brick: #d0342c; /* overdue and errors */
 
-  --font-heading: "General Sans", system-ui, "Segoe UI", sans-serif;
+  --font-heading: "Work Sans", "Inter", system-ui, "Segoe UI", sans-serif;
   --font-sans: "Inter", system-ui, "Segoe UI", sans-serif;
 }
 
@@ -284,7 +284,7 @@ input[type="checkbox"] {
   }
 }
 
-/* Headings are set in General Sans; everything else in Inter. */
+/* Headings are set in Work Sans; everything else in Inter. */
 h1,
 h2,
 h3 {
@@ -321,34 +321,27 @@ h3 {
   src: url("./fonts/inter-latin-700-normal.woff2") format("woff2");
 }
 
-/* General Sans (Indian Type Foundry, ITF Free Font License, from fontshare.com), self-hosted. */
+/* Work Sans (SIL Open Font License), latin, self-hosted; its licence sits beside it. */
 @font-face {
-  font-family: "General Sans";
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-  src: url("./fonts/general-sans-400.woff2") format("woff2");
-}
-@font-face {
-  font-family: "General Sans";
+  font-family: "Work Sans";
   font-style: normal;
   font-weight: 500;
   font-display: swap;
-  src: url("./fonts/general-sans-500.woff2") format("woff2");
+  src: url("./fonts/work-sans-latin-500-normal.woff2") format("woff2");
 }
 @font-face {
-  font-family: "General Sans";
+  font-family: "Work Sans";
   font-style: normal;
   font-weight: 600;
   font-display: swap;
-  src: url("./fonts/general-sans-600.woff2") format("woff2");
+  src: url("./fonts/work-sans-latin-600-normal.woff2") format("woff2");
 }
 @font-face {
-  font-family: "General Sans";
+  font-family: "Work Sans";
   font-style: normal;
   font-weight: 700;
   font-display: swap;
-  src: url("./fonts/general-sans-700.woff2") format("woff2");
+  src: url("./fonts/work-sans-latin-700-normal.woff2") format("woff2");
 }
 
 /*
